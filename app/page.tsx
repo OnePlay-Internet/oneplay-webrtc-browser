@@ -20,6 +20,8 @@ import {
 import SbCore from "../supabase";
 import { Modal } from "@mui/material";
 import { IconHorizontalPhone } from "../public/assets/svg/svg_cpn";
+import { RendermixApi } from "../api/rendermix-api";
+import Swal from "sweetalert2";
 
 let client : WebRTCClient = null
 
@@ -51,7 +53,21 @@ export default function Home () {
 
     const [Platform,setPlatform] = useState<Platform>(null);
 
+    const redirectToLogin = () => {
+        location.href = '/dashboard/login?redirectUrl=' + location.href;
+    }
+
     const SetupConnection = async () => {
+        const sessionToken = localStorage.getItem("op_session_token");
+
+        if (!sessionToken) {
+            return redirectToLogin();
+        }
+
+        const api = new RendermixApi();
+
+        const {email: sessionEmail} = await api.getProfile();
+
         localStorage.setItem("reference",ref)
         
         const core = new SbCore()
@@ -66,6 +82,24 @@ export default function Home () {
             return
 
         const {token,email,SignalingURL,WebRTCConfig,PingCallback} = result
+
+        if (sessionEmail !== email) {
+            return Swal.fire({
+                icon: 'info',
+                title: 'Invalid Link',
+                text: 'Please login with different user',
+                confirmButtonText: "Login",
+                showCancelButton: true,
+            }).then((res) => {
+                if (res.isConfirmed) {
+                    localStorage.removeItem("op_session_token");
+                    redirectToLogin();
+                } else {
+                    window.close();
+                }
+            });
+        }
+
         setInterval(PingCallback,20000)
         client = new WebRTCClient(
             SignalingURL,token, WebRTCConfig,
