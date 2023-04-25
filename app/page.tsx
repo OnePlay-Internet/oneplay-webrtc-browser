@@ -95,7 +95,7 @@ export default function Home () {
                     localStorage.removeItem("op_session_token");
                     redirectToLogin();
                 } else {
-                    window.close();
+                    location.href = '/dashboard';
                 }
             });
         }
