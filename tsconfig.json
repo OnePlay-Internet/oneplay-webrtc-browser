@@ -26,7 +26,10 @@
 			{
 				"name": "next"
 			}
-		]
+		],
+		"paths": {
+			"@config": ["./config.json"]
+		}
 	},
 	"include": [
 		"next-env.d.ts",
