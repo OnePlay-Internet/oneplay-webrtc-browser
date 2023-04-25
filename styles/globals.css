@@ -1,3 +1,24 @@
+@font-face {
+    font-family: "Poppins";
+    src: url(/assets/fonts/Poppins/Poppins-Regular.ttf);
+}
+
+@font-face {
+    font-family: "Poppins";
+    src: url(/assets/fonts/Poppins/Poppins-Bold.ttf);
+    font-weight: bold;
+}
+
+@font-face {
+    font-family: "Poppins";
+    src: url(/assets/fonts/Poppins/Poppins-Light.ttf);
+    font-weight: light;
+}
+
+* {
+    font-family: "Poppins";
+}
+
 html,
 body {
     /* width: 100%;
@@ -22,7 +43,7 @@ a {
     box-sizing: border-box;
     padding: 0;
     margin: 0;
-	font-size: 12px;
+    font-size: 12px;
 }
 
 /* #__next {
@@ -30,3 +51,58 @@ a {
     width: 100%;
     height: 100%;
 } */
+
+.swal2-popup {
+    background-color: #212123 !important;
+}
+
+.swal2-title {
+    font-weight: 600 !important;
+    font-size: 20px !important;
+    line-height: 34px !important;
+    letter-spacing: 0.02em !important;
+    color: #ffffff !important;
+    margin-top: 11px !important;
+}
+
+.swal2-html-container {
+    font-weight: 500 !important;
+    font-size: 16px !important;
+    line-height: 26px !important;
+    color: #959595 !important;
+    letter-spacing: 0.02em !important;
+    padding: 0px 20px !important;
+}
+
+.swal2-popup {
+    width: 28rem !important;
+    border-radius: 6px !important;
+}
+
+.swal2-close {
+    font-size: 2em !important;
+}
+
+.swal2-close:focus {
+    box-shadow: none !important;
+}
+
+.swal2-actions {
+    width: 90% !important;
+}
+
+.swal2-styled.swal2-confirm {
+    width: 100% !important;
+    background: linear-gradient(270deg, #a83afe 0%, #6e59fe 100%) !important;
+}
+
+.swal2-cancel.swal2-styled {
+    width: 100% !important;
+    background: none !important;
+}
+
+@media (max-width: 1200px) {
+    .swal2-styled.swal2-confirm {
+        border-radius: 60px !important;
+    }
+}
