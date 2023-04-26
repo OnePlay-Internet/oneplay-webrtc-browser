@@ -1,4 +1,5 @@
 module.exports = {
+    basePath: "/webplay",
     webpack(config, { isServer }) {
         config.module.rules.push({
             test: /\.svg$/i,
