@@ -22,6 +22,7 @@ import { Modal } from "@mui/material";
 import { IconHorizontalPhone } from "../public/assets/svg/svg_cpn";
 import { RendermixApi } from "../api/rendermix-api";
 import Swal from "sweetalert2";
+import { generateSHA256 } from "../utils/hash-util";
 
 let client : WebRTCClient = null
 
@@ -66,7 +67,7 @@ export default function Home () {
 
         const api = new RendermixApi();
 
-        const {email: sessionEmail} = await api.getProfile();
+        const { user_id } = await api.getProfile();
 
         localStorage.setItem("reference",ref)
         
@@ -83,7 +84,9 @@ export default function Home () {
 
         const {token,email,SignalingURL,WebRTCConfig,PingCallback} = result
 
-        if (sessionEmail !== email) {
+        const emailToCompare = (await generateSHA256(user_id)) + "@oneplay.in"
+
+        if (emailToCompare !== email) {
             return Swal.fire({
                 icon: 'info',
                 title: 'Invalid Link',
