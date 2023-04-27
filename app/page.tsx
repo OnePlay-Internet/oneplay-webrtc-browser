@@ -24,6 +24,7 @@ import { RendermixApi } from "../api/rendermix-api";
 import Swal from "sweetalert2";
 import { generateSHA256 } from "../utils/hash-util";
 import config from '../config.json';
+import Cookies from "js-cookie";
 
 let client : WebRTCClient = null
 
@@ -56,11 +57,11 @@ export default function Home () {
     const [Platform,setPlatform] = useState<Platform>(null);
 
     const redirectToLogin = () => {
-        location.href = config.app_domain + '/login?redirectUrl=' + location.href;
+        location.href = config.app_domain + '/login?redirectUrl=' + encodeURIComponent(location.href);
     }
 
     const SetupConnection = async () => {
-        const sessionToken = localStorage.getItem("op_session_token");
+        const sessionToken = Cookies.get("op_session_token");
 
         if (!sessionToken) {
             return redirectToLogin();
@@ -96,7 +97,10 @@ export default function Home () {
                 showCancelButton: true,
             }).then((res) => {
                 if (res.isConfirmed) {
-                    localStorage.removeItem("op_session_token");
+                    Cookies.remove("op_session_token", {
+                        domain: config.cookie_domain,
+                        path: "/",
+                    });
                     redirectToLogin();
                 } else {
                     location.href = config.app_domain;
