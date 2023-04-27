@@ -1,6 +1,6 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from "axios";
 import { UserProfile } from "../inteface";
-import config from "@config"
+import config from "@config";
 
 export class RendermixApi {
     private http: AxiosInstance;
@@ -26,7 +26,9 @@ export class RendermixApi {
                 if (error.response.status === 401) {
                     localStorage.removeItem("op_session_token");
                     location.href =
-                        "/dashboard/login?redirectUrl=" + location.href;
+                        config.app_domain +
+                        "/login?redirectUrl=" +
+                        location.href;
                 }
                 return Promise.reject(error.response);
             }

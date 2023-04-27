@@ -23,6 +23,7 @@ import { IconHorizontalPhone } from "../public/assets/svg/svg_cpn";
 import { RendermixApi } from "../api/rendermix-api";
 import Swal from "sweetalert2";
 import { generateSHA256 } from "../utils/hash-util";
+import config from '../config.json';
 
 let client : WebRTCClient = null
 
@@ -55,7 +56,7 @@ export default function Home () {
     const [Platform,setPlatform] = useState<Platform>(null);
 
     const redirectToLogin = () => {
-        location.href = '/dashboard/login?redirectUrl=' + location.href;
+        location.href = config.app_domain + '/login?redirectUrl=' + location.href;
     }
 
     const SetupConnection = async () => {
@@ -98,7 +99,7 @@ export default function Home () {
                     localStorage.removeItem("op_session_token");
                     redirectToLogin();
                 } else {
-                    location.href = '/dashboard';
+                    location.href = config.app_domain;
                 }
             });
         }
