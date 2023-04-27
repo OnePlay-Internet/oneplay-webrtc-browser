@@ -1,6 +1,7 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from "axios";
 import { UserProfile } from "../inteface";
 import config from "@config";
+import Cookies from "js-cookie";
 
 export class RendermixApi {
     private http: AxiosInstance;
@@ -16,7 +17,7 @@ export class RendermixApi {
 
         this.http.interceptors.request.use((req) => {
             req.headers = {
-                session_token: localStorage.getItem("op_session_token"),
+                session_token: Cookies.get("op_session_token"),
             };
             return req;
         });
@@ -24,11 +25,14 @@ export class RendermixApi {
             (res) => res,
             (error) => {
                 if (error.response.status === 401) {
-                    localStorage.removeItem("op_session_token");
+                    Cookies.remove("op_session_token", {
+                        domain: config.cookie_domain,
+                        path: "/",
+                    });
                     location.href =
                         config.app_domain +
                         "/login?redirectUrl=" +
-                        location.href;
+                        encodeURIComponent(location.href);
                 }
                 return Promise.reject(error.response);
             }
