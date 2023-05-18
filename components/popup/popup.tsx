@@ -1,12 +1,20 @@
 import Swal from "sweetalert2";
 import { Soundcard, Monitor, } from "../../core/src/models/devices.model";
 
-let have_swal = false;
+let have_swal : 'confirm' | 'popup' | 'none' = "none";
+
 export async function TurnOnAlert(error: string): Promise<void> {
-    if (have_swal) {
+    if (have_swal == 'popup') {
         TurnOffStatus();
+        have_swal = 'none'
+    } 
+
+    if (have_swal == 'confirm') {
+        return
     }
 
+
+    have_swal = 'popup';
     Swal.fire({
         title: "Opps...",
         text: error,
@@ -14,23 +22,45 @@ export async function TurnOnAlert(error: string): Promise<void> {
         confirmButtonText: "OK",
         timer: 3000,
     });
-    have_swal = true;
 }
 
-export function TurnOnStatus(status: string): void {
-    if (have_swal) {
-        TurnOffStatus();
+export async function TurnOnConfirm(status: string, text?: string): Promise<void> {
+    while (have_swal == 'confirm') {
+		await new Promise(r => setTimeout(r, 300));
     }
 
+    if (have_swal == 'popup') {
+        TurnOffStatus();
+        have_swal = 'none'
+    }
+
+
+    have_swal = 'confirm'
+    await Swal.fire({
+        title: `${status}`,
+        text: text ?? "Please wait while the client is getting ready...",
+        showConfirmButton: true,
+    });
+    have_swal = 'none'
+}
+export function TurnOnStatus(status: string, text?: string): void {
+    if (have_swal == 'popup') {
+        TurnOffStatus();
+    } 
+
+    if (have_swal == 'confirm') {
+        return
+    }
+
+    have_swal = 'popup';
     Swal.fire({
-        title: `Application status: ${status}`,
-        text: "Please wait while the client is getting ready...",
+        title: `${status}`,
+        text: text ?? "Please wait while the client is getting ready...",
         showConfirmButton: false,
         timer: 7000,
         willOpen: () => Swal.showLoading(null),
         willClose: () => Swal.hideLoading(),
     });
-    have_swal = true;
 }
 
 export function TurnOffStatus(): void {

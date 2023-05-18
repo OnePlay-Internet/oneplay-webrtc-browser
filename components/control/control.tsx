@@ -1,6 +1,6 @@
 "use client"
 
-import { Fullscreen, Key } from "@mui/icons-material";
+import { Fullscreen, Key, VolumeUp } from "@mui/icons-material";
 import SportsEsportsOutlinedIcon from '@mui/icons-material/SportsEsportsOutlined';
 import MouseOutlinedIcon from '@mui/icons-material/MouseOutlined';
 import VideoSettingsOutlinedIcon from '@mui/icons-material/VideoSettingsOutlined';
@@ -24,6 +24,7 @@ export const WebRTCControl = (input: {
 	MouseMoveCallback: (x: number, y: number) => Promise<void>,
 	MouseButtonCallback: (index: number, type: 'up' | 'down') => Promise<void>,
 	keystuckCallback: () => Promise<void>,
+	audioCallback: () => Promise<void>,
 	clipboardSetCallback: (val: string) => Promise<void>,
 
 	bitrate_callback: (bitrate: number) => Promise<void>,
@@ -88,6 +89,10 @@ export const WebRTCControl = (input: {
 
 				},
 			}, {
+				icon: <VolumeUp />,
+				name: "If your audio is muted",
+				action: () => { input.audioCallback() },
+			}, {
 				icon: <KeyboardIcon />,
 				name: "Write to clipboard",
 				action: async () => {
@@ -114,6 +119,10 @@ export const WebRTCControl = (input: {
 				name: "Enter fullscreen",
 				action: () => { requestFullscreen() }
 			}, {
+				icon: <VolumeUp />,
+				name: "If your audio is muted",
+				action: () => { input.audioCallback() },
+			}, {
 				icon: <KeyboardIcon />,
 				name: "If some of your key is stuck",
 				action: () => { input.keystuckCallback() },
@@ -133,7 +142,7 @@ export const WebRTCControl = (input: {
 		{
 			opacity: 0.3,
 			position: 'absolute',
-			bottom: '17%',
+			bottom: '10%',
 			right: '2%',
 			'& .MuiFab-primary': { backgroundColor: 'white', color: 'white' }
 		}
