@@ -4,13 +4,15 @@ import React, { useEffect, useRef, useState } from "react";
 import video_desktop from "../public/assets/videos/video_demo_desktop.mp4";
 import styled from "styled-components";
 import {
+    TurnOnConfirm,
     TurnOnStatus,
 } from "../components/popup/popup";
 import { WebRTCClient } from "../core/src/app";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
     AddNotifier,
-    EventMessage,
+    ConnectionEvent,
+    LogConnectionEvent,
 } from "../core/src/utils/log";
 import { WebRTCControl } from "../components/control/control";
 import {
@@ -33,18 +35,6 @@ export default function Home () {
     const remoteAudio = useRef<HTMLAudioElement>(null);
     const searchParams = useSearchParams();
     const router = useRouter()
-    AddNotifier((message: EventMessage) => {
-        if(message == 'WebSocketConnected' || 
-            message == 'ExchangingSignalingMessage' || 
-            message == 'WaitingAvailableDeviceSelection')  {
-            return;
-        }
-        
-        TurnOnStatus(message);
-
-        if(message == 'WebRTCConnectionClosed') 
-            router.refresh();
-    })
 
     let ref_local        = ''
     if (typeof window !== 'undefined') {
@@ -108,7 +98,10 @@ export default function Home () {
             });
         }
 
-        setInterval(PingCallback,20000)
+        setInterval(PingCallback,14000)
+
+        LogConnectionEvent(ConnectionEvent.ApplicationStarted);
+
         client = new WebRTCClient(
             SignalingURL,token, WebRTCConfig,
             remoteVideo.current, 
@@ -123,7 +116,30 @@ export default function Home () {
 	}
 
     useEffect(() => {
-        SetupConnection()            
+        AddNotifier(async (message: ConnectionEvent, text?: string) => {
+            if(message == ConnectionEvent.WebSocketConnected || 
+                message == ConnectionEvent.ExchangingSignalingMessage || 
+                message == ConnectionEvent.WaitingAvailableDeviceSelection)  {
+                return;
+            }
+
+            if (message == ConnectionEvent.ApplicationStarted ||
+                message == ConnectionEvent.ReceivedVideoStream ||
+                message == ConnectionEvent.ReceivedAudioStream ) {
+                await TurnOnConfirm(message,text)
+                return
+            }
+            
+            TurnOnStatus(message,text);
+
+            if(message == ConnectionEvent.WebRTCConnectionClosed) 
+                router.refresh();
+        })
+
+        SetupConnection().catch(error => {
+            TurnOnStatus(error);
+        })
+
         setPlatform(old => { if (old == null) return getPlatform() })
 
         if(getPlatform() != 'mobile')
@@ -170,6 +186,15 @@ export default function Home () {
         client?.hid?.SetClipboard(val)
         client?.hid?.PasteClipboard()
     }
+    const audioCallback = async() => {
+        try { 
+            client?.ResetAudio()
+            await remoteAudio.current.play() 
+            await remoteVideo.current.play() 
+        } catch (e) {
+            console.log(`error play audio ${JSON.stringify(e)}`)
+        }
+    }
     return (
         <Body>
             <RemoteVideo
@@ -181,7 +206,9 @@ export default function Home () {
                 loop
             ></RemoteVideo>
             <App
-                onContextMenu={(e) => e.preventDefault()}
+                onContextMenu={(e) => {
+                    e.preventDefault()
+                }}
                 onMouseUp={(e: MouseEvent) => {
                     e.preventDefault();
                 }}
@@ -203,6 +230,7 @@ export default function Home () {
                 MouseMoveCallback={MouseMoveCallback}
                 MouseButtonCallback={MouseButtonCallback}
                 keystuckCallback={keystuckCallback}
+                audioCallback={audioCallback}
                 clipboardSetCallback={clipboardSetCallback}
                 ></WebRTCControl>
             </App>
@@ -231,6 +259,8 @@ export default function Home () {
 
 const RemoteVideo = styled.video`
     position: absolute;
+    z-index: 1;
+    -webkit-transform-style: preserve-3d;
     top: 0px;
     right: 0px;
     bottom: 0px;
@@ -240,6 +270,7 @@ const RemoteVideo = styled.video`
     height: 100%;
     max-height: 100%;
     max-width: 100%;
+    opacity: 1;
 `;
 const Body = styled.div`
     width: 100vw;
