@@ -7,7 +7,7 @@ import {
     TurnOnConfirm,
     TurnOnStatus,
 } from "../components/popup/popup";
-import { WebRTCClient } from "../core/src/app";
+import { RemoteDesktopClient } from "../core/src/app";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
     AddNotifier,
@@ -27,15 +27,18 @@ import Swal from "sweetalert2";
 import { generateSHA256 } from "../utils/hash-util";
 import config from '../config.json';
 import Cookies from "js-cookie";
+import StatusConnect from "../components/status";
 
-let client : WebRTCClient = null
+let client : RemoteDesktopClient = null
 
 export default function Home () {
+    const [videoConnectivity,setVideoConnectivity] = useState<string>('not started');
+    const [audioConnectivity,setAudioConnectivity] = useState<string>('not started');
+    
     const remoteVideo = useRef<HTMLVideoElement>(null);
     const remoteAudio = useRef<HTMLAudioElement>(null);
     const searchParams = useSearchParams();
-    const router = useRouter()
-
+    
     let ref_local        = ''
     if (typeof window !== 'undefined') {
         ref_local        = localStorage.getItem("reference")
@@ -43,8 +46,9 @@ export default function Home () {
     const user_ref   = searchParams.get('uref') ?? undefined
     const ref        = searchParams.get('ref')  ?? ref_local 
     const platform   = searchParams.get('platform'); 
-
+    
     const [Platform,setPlatform] = useState<Platform>(null);
+    const [showStats, setShowStats] = useState<boolean>(searchParams.get('show_stats') === 'true');
 
     const redirectToLogin = () => {
         location.href = config.app_domain + '/login?redirectUrl=' + encodeURIComponent(location.href);
@@ -63,22 +67,22 @@ export default function Home () {
 
         localStorage.setItem("reference",ref)
         
-        const core = new SbCore()
-        if (!await core.Authenticated() && user_ref == undefined) 
+       const core = new SbCore()
+       if (!await core.Authenticated() && user_ref == undefined) 
 			await core.LoginWithGoogle()
         
-        if(ref == null) 
-            return
+       if(ref == null) 
+           return
 
-        const result = await core.AuthenticateSession(ref,user_ref)
-        if (result instanceof Error) 
-            return
+       const result = await core.AuthenticateSession(ref,user_ref)
+       if (result instanceof Error) 
+           return
 
-        const {token,email,SignalingURL,WebRTCConfig,PingCallback} = result
+        const { Email ,SignalingConfig , WebRTCConfig, PingCallback } = result
 
         const emailToCompare = (await generateSHA256(user_id)) + "@oneplay.in"
 
-        if (emailToCompare !== email) {
+        if (emailToCompare !== Email) {
             return Swal.fire({
                 icon: 'info',
                 title: 'Invalid Link',
@@ -98,102 +102,96 @@ export default function Home () {
             });
         }
 
-        setInterval(PingCallback,14000)
+       setInterval(PingCallback,14000)
 
-        LogConnectionEvent(ConnectionEvent.ApplicationStarted);
-
-        client = new WebRTCClient(
-            SignalingURL,token, WebRTCConfig,
-            remoteVideo.current, 
-            remoteAudio.current,  
-            Platform)
+       await LogConnectionEvent(ConnectionEvent.ApplicationStarted)
+       client = new RemoteDesktopClient(
+           SignalingConfig,WebRTCConfig,
+           remoteVideo.current, 
+           remoteAudio.current,  
+           Platform)
     }
 
     
 	const [isModalOpen, setModalOpen] = useState(false)
 	const checkHorizontal = (width: number,height:number) => {
-        setModalOpen(width < height)
+       setModalOpen(width < height)
 	}
 
     useEffect(() => {
-        AddNotifier(async (message: ConnectionEvent, text?: string) => {
-            if(message == ConnectionEvent.WebSocketConnected || 
-                message == ConnectionEvent.ExchangingSignalingMessage || 
-                message == ConnectionEvent.WaitingAvailableDeviceSelection)  {
-                return;
-            }
+       AddNotifier(async (message: ConnectionEvent, text?: string, source?: string) => {
+            if (message == ConnectionEvent.WebRTCConnectionClosed) 
+                await source == "audio" ? setAudioConnectivity("closed") : setVideoConnectivity("closed")
+            if (message == ConnectionEvent.WebRTCConnectionDoneChecking) 
+                await source == "audio" ? setAudioConnectivity("connected") : setVideoConnectivity("connected")
+            if (message == ConnectionEvent.WebRTCConnectionChecking) 
+                await source == "audio" ? setAudioConnectivity("connecting") : setVideoConnectivity("connecting")
 
-            if (message == ConnectionEvent.ApplicationStarted ||
-                message == ConnectionEvent.ReceivedVideoStream ||
-                message == ConnectionEvent.ReceivedAudioStream ) {
+            if (message == ConnectionEvent.ApplicationStarted) {
                 await TurnOnConfirm(message,text)
-                return
+                setAudioConnectivity("started") 
+                setVideoConnectivity("started")
             }
-            
-            TurnOnStatus(message,text);
+       })
 
-            if(message == ConnectionEvent.WebRTCConnectionClosed) 
-                router.refresh();
-        })
+       SetupConnection().catch(error => {
+           TurnOnStatus(error);
+       })
 
-        SetupConnection().catch(error => {
-            TurnOnStatus(error);
-        })
+       setPlatform(old => { if (old == null) return getPlatform() })
 
-        setPlatform(old => { if (old == null) return getPlatform() })
-
-        if(getPlatform() != 'mobile')
-            return
+       if(getPlatform() != 'mobile')
+           return
         
 		checkHorizontal(window.innerWidth,window.innerHeight)
-        window.addEventListener('resize', (e: UIEvent) => {
+       window.addEventListener('resize', (e: UIEvent) => {
 			checkHorizontal(window.innerWidth, window.innerHeight)
 		})
 
 		return () => { 
-            window.removeEventListener('resize', (e: UIEvent) => { 
-                checkHorizontal(window.innerWidth, window.innerHeight)
+           window.removeEventListener('resize', (e: UIEvent) => { 
+               checkHorizontal(window.innerWidth, window.innerHeight)
 			})
 		}
     }, []);
 
 
     const toggle_mouse_touch_callback=async function(enable: boolean) { 
-        client?.hid?.DisableTouch(!enable);
-        client?.hid?.DisableMouse(!enable);
+       client?.hid?.DisableTouch(!enable);
+       client?.hid?.DisableMouse(!enable);
     } 
     const bitrate_callback= async function (bitrate: number) { 
-        client?.ChangeBitrate(bitrate);
-        client?.ChangeFramerate(55);
+       client?.ChangeBitrate(bitrate);
+       client?.ChangeFramerate(55);
     } 
     const GamepadACallback=async function(x: number, y: number, type: "left" | "right"): Promise<void> {
-        client?.hid?.VirtualGamepadAxis(x,y,type);
+       client?.hid?.VirtualGamepadAxis(x,y,type);
     } 
     const GamepadBCallback=async function(index: number, type: "up" | "down"): Promise<void> {
-        client?.hid?.VirtualGamepadButtonSlider(type == 'down',index);
+       client?.hid?.VirtualGamepadButtonSlider(type == 'down',index);
     }  
     const MouseMoveCallback=async function (x: number, y: number): Promise<void> {
-        client?.hid?.mouseMoveRel({movementX:x,movementY:y});
+       client?.hid?.mouseMoveRel({movementX:x,movementY:y});
     } 
     const MouseButtonCallback=async function (index: number, type: "up" | "down"): Promise<void> {
-        type == 'down' ? client?.hid?.MouseButtonDown({button: index}) : client?.hid?.MouseButtonUp({button: index})
+       type == 'down' ? client?.hid?.MouseButtonDown({button: index}) : client?.hid?.MouseButtonUp({button: index})
     } 
     const keystuckCallback= async function (): Promise<void> {
-        client?.hid?.ResetKeyStuck();
+       client?.hid?.ResetKeyStuck();
     }
     const clipboardSetCallback= async function (val: string): Promise<void> {
-        console.log(val)
-        client?.hid?.SetClipboard(val)
-        client?.hid?.PasteClipboard()
+       console.log(val)
+       client?.hid?.SetClipboard(val)
+       client?.hid?.PasteClipboard()
     }
     const audioCallback = async() => {
-        try { 
-            client?.ResetAudio()
-            await remoteAudio.current.play() 
-            await remoteVideo.current.play() 
-        } catch (e) {
-            console.log(`error play audio ${JSON.stringify(e)}`)
-        }
+       try { 
+           client?.ResetAudio()
+           await remoteAudio.current.play() 
+           await remoteVideo.current.play() 
+       } catch (e) {
+           console.log(`error play audio ${JSON.stringify(e)}`)
+       }
     }
     return (
         <Body>
@@ -253,6 +251,11 @@ export default function Home () {
 					<TextModal>Please rotate the phone horizontally!!</TextModal>
 				</ContentModal>
 			</Modal>
+            {showStats && <StatusConnect
+            	videoConnect={videoConnectivity}
+	            audioConnect={audioConnectivity}
+	            fps={'55fps'}
+            />}
         </Body>
     );
 };

@@ -2,20 +2,32 @@
 
 import { SupabaseClient, User } from "@supabase/supabase-js";
 import { createBrowserSupabaseClient } from '@supabase/auth-helpers-nextjs'
-
-export type SbFunction = 'worker_session_create' | 'worker_session_deactivate' | 'worker_profile_fetch' | 'session_authenticate' 
+import { SignalingConfig } from "../core/src/signaling/config";
 export const createBrowserClient = () => createBrowserSupabaseClient()
+
+export type SbFunction = 'worker_session_create' | 'worker_session_deactivate' | 'worker_profile_fetch' | 'session_authenticate' | 'fetch_worker_status'
+
 export type AuthSessionResp = {
 	id 	  : string
 	email : string
-	token : string
 	webrtc : RTCConfiguration
 	signaling : {
-        HostName      : string 
-        SignalingPort : number 
-        WebsocketURL  : string 
+		audioURL : string
+		videoURL : string
+		dataURL  : string
     }
 }
+export type WorkerStatusFetch = {
+	last_check : string
+	connecting_users : {
+		id: number
+		email: string
+		connect_at: string
+    }[]
+}
+
+
+
 export default class SbCore {
 	private supabase: SupabaseClient;
 	constructor() {
@@ -27,6 +39,7 @@ export default class SbCore {
 			provider: "google",
 			options: {
 				redirectTo:'https://remote.thinkmay.net',
+				// redirectTo:'http://localhost:3000',
 				queryParams: {
 					access_type: "offline",
 					prompt: "consent",
@@ -50,12 +63,12 @@ export default class SbCore {
 
 
 	public async AuthenticateSession(ref : string, uref?: string): Promise<{
-		token: string
-		email: string
-		SignalingURL : string
+		Email: string
+		SignalingConfig : SignalingConfig
 		WebRTCConfig : RTCConfiguration
 		PingCallback : () => Promise<void>
 	} | Error> {
+
 		const session = await this.supabase.auth.getSession()
 		if (session.error != null && uref == undefined) 
 			return new Error(session.error.message)
@@ -65,29 +78,57 @@ export default class SbCore {
 			{ "uref": uref }  
 
 		const body = JSON.stringify({ reference: ref })
-		const {data,error} = await this.supabase.functions.invoke<AuthSessionResp>("session_authenticate" as SbFunction,{
-			headers: headers,
-			body: body,
-			method: 'POST',
+		const {data,error} = await this.supabase.functions
+			.invoke<AuthSessionResp>("session_authenticate" as SbFunction,{
+				headers: headers,
+				body: body,
+				method: 'POST',
+		})
+
+		if(error != null)
+			return new Error(error)
+
+		const pingFunc = async () => {
+			const { error } = await this.supabase.rpc(`ping_session`, { 
+				session_id: data.id 
+			})
+
+			if (error != null ) {
+				throw `unable to ping ${error.message}`	
+			}
+		}
+
+		return  {
+			Email 			: data.email,
+			SignalingConfig : data.signaling,
+			WebRTCConfig 	: data.webrtc,
+			PingCallback	: pingFunc,
+		}
+	}
+
+
+
+	public async FetchServerStatus(ref : string): Promise<{
+	} | Error> {
+		const session = await this.supabase.auth.getSession()
+
+		const headers = { 
+			access_token: session.data?.session?.access_token 
+		} 
+
+		const body = JSON.stringify({ reference: ref })
+		const {data,error} = await this.supabase.functions
+			.invoke<AuthSessionResp>('fetch_worker_status' as SbFunction,{
+				headers: headers,
+				body: body,
+				method: 'POST',
 		})
 
 		if(error != null)
 			return new Error(error)
 
 		return  {
-			token : data.token,
-			email : data.email,
-			SignalingURL : data.signaling.WebsocketURL,
-			WebRTCConfig : data.webrtc,
-			PingCallback: async () => {
-				const { error } = await this.supabase.rpc(`ping_session`, { 
-					session_id: data.id 
-				})
 
-				if (error != null ) {
-					throw `unable to ping ${error.message}`	
-				}
-			}
 		}
 	}
 }
