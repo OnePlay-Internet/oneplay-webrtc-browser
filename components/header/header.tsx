@@ -22,6 +22,7 @@ export const Header = () => {
                 content="width=device-width, height=device-height,  initial-scale=1.0, user-scalable=no;user-scalable=0;"
             />
             <link rel="icon" href="/webplay/favicon.ico" />
+            <link rel="manifest" href="/webplay/manifest.json" />
         </head>
     );
 };

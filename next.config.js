@@ -1,4 +1,9 @@
-module.exports = {
+const withPWA = require("next-pwa")({
+    dest: "public",
+    scope: "/webplay",
+});
+
+module.exports = withPWA({
     basePath: "/webplay",
     webpack(config, { isServer }) {
         config.module.rules.push({
@@ -24,4 +29,4 @@ module.exports = {
     experimental: {
         appDir: true,
     },
-};
+});
