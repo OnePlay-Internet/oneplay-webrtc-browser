@@ -4,9 +4,12 @@ import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import video_desktop from "../public/assets/videos/video_demo_desktop.mp4";
 import styled from "styled-components";
 
-import { TurnOnConfirm, TurnOnStatus } from "../components/popup/popup";
-import { RemoteDesktopClient } from "../core/src/app";
-import { useRouter, useSearchParams } from "next/navigation";
+import {
+    TurnOnConfirm,
+    TurnOnStatus,
+} from "../components/popup/popup";
+import { Metrics, RemoteDesktopClient } from "../core/src/app";
+import { useSearchParams } from "next/navigation";
 import {
     AddNotifier,
     ConnectionEvent,
@@ -26,35 +29,31 @@ import StatusConnect from "../components/status/status";
 
 let client: RemoteDesktopClient = null;
 
-export default function Home() {
-    const [videoConnectivity, setVideoConnectivity] =
-        useState<string>("not started");
-    const [audioConnectivity, setAudioConnectivity] =
-        useState<string>("not started");
+export default function Home () {
+    const [videoConnectivity,setVideoConnectivity] = useState<string>('not started');
+    const [audioConnectivity,setAudioConnectivity] = useState<string>('not started');
+    const [isGuideModalOpen, setGuideModalOpen] = useState(true)
 
+    useLayoutEffect(()=>{
+        const isGuideModalLocal = localStorage.getItem('isGuideModalLocal')
+        if(isGuideModalLocal == 'false' || isGuideModalLocal == 'true'){
+            setGuideModalOpen(JSON.parse(isGuideModalLocal))
+        }
+    },[])
     const remoteVideo = useRef<HTMLVideoElement>(null);
     const remoteAudio = useRef<HTMLAudioElement>(null);
 
-    const [isGuideModalOpen, setGuideModalOpen] = useState(true);
-
-    useLayoutEffect(() => {
-        const isGuideModalLocal = localStorage.getItem("isGuideModalLocal");
-        if (isGuideModalLocal == "false" || isGuideModalLocal == "true") {
-            setGuideModalOpen(JSON.parse(isGuideModalLocal));
-        }
-    }, []);
-
-    let ref_local = "";
-    if (typeof window !== "undefined") {
-        ref_local = localStorage.getItem("reference");
+    let ref_local        = ''
+    if (typeof window !== 'undefined') {
+        ref_local        = localStorage.getItem("reference")
     }
 
     const searchParams = useSearchParams();
-    const user_ref = searchParams.get("uref") ?? undefined;
-    const ref = searchParams.get("ref") ?? ref_local;
-    const platform = searchParams.get("platform");
+    const user_ref   = searchParams.get('uref') ?? undefined
+    const ref        = searchParams.get('ref')  ?? ref_local 
+    const platform   = searchParams.get('platform'); 
 
-    const [Platform, setPlatform] = useState<Platform>(null);
+    const [Platform,setPlatform] = useState<Platform>(null);
     const [showStats, setShowStats] = useState<boolean>(
         searchParams.get("show_stats") === "true"
     );
@@ -77,18 +76,20 @@ export default function Home() {
 
         const { user_id } = await api.getProfile();
 
-        localStorage.setItem("reference", ref);
+        localStorage.setItem("reference",ref)
+            
+        const core = new SbCore()
+        if (!await core.Authenticated() && user_ref == undefined) 
+                await core.LoginWithGoogle()
+            
+        if(ref == null) 
+            return
 
-        const core = new SbCore();
-        if (!(await core.Authenticated()) && user_ref == undefined)
-            await core.LoginWithGoogle();
+        const result = await core.AuthenticateSession(ref,user_ref)
+        if (result instanceof Error) 
+            return
 
-        if (ref == null) return;
-
-        const result = await core.AuthenticateSession(ref, user_ref);
-        if (result instanceof Error) return;
-
-        const { Email, SignalingConfig, WebRTCConfig, PingCallback } = result;
+        const {Email ,SignalingConfig ,WebRTCConfig,PingCallback} = result
 
         const emailToCompare = (await generateSHA256(user_id)) + "@oneplay.in";
 
@@ -111,124 +112,107 @@ export default function Home() {
                 }
             });
         }
+        
+        setInterval(PingCallback,14000)
 
-        setInterval(PingCallback, 14000);
-
-        await LogConnectionEvent(ConnectionEvent.ApplicationStarted);
+        await LogConnectionEvent(ConnectionEvent.ApplicationStarted)
         client = new RemoteDesktopClient(
-            SignalingConfig,
-            WebRTCConfig,
-            remoteVideo.current,
-            remoteAudio.current,
-            Platform
-        );
-    };
+            SignalingConfig,WebRTCConfig,
+            remoteVideo.current, 
+            remoteAudio.current,   
+            Platform)
+        
+        client.HandleMetrics = async (metrics: Metrics) => {
 
-    const [isModalOpen, setModalOpen] = useState(false);
-    const checkHorizontal = (width: number, height: number) => {
-        if (Platform == "mobile") setModalOpen(width < height);
-    };
+        }
+    }
+
+
+	const [isModalOpen, setModalOpen] = useState(false)
+	const checkHorizontal = (width: number,height:number) => {
+        if (Platform == 'mobile') 
+            setModalOpen(width < height)
+	}
 
     useEffect(() => {
-        AddNotifier(
-            async (
-                message: ConnectionEvent,
-                text?: string,
-                source?: string
-            ) => {
-                if (message == ConnectionEvent.WebRTCConnectionClosed)
-                    (await source) == "audio"
-                        ? setAudioConnectivity("closed")
-                        : setVideoConnectivity("closed");
-                if (message == ConnectionEvent.WebRTCConnectionDoneChecking)
-                    (await source) == "audio"
-                        ? setAudioConnectivity("connected")
-                        : setVideoConnectivity("connected");
-                if (message == ConnectionEvent.WebRTCConnectionChecking)
-                    (await source) == "audio"
-                        ? setAudioConnectivity("connecting")
-                        : setVideoConnectivity("connecting");
+       AddNotifier(async (message: ConnectionEvent, text?: string, source?: string) => {
+            if (message == ConnectionEvent.WebRTCConnectionClosed) 
+                await source == "audio" ? setAudioConnectivity("closed") : setVideoConnectivity("closed")
+            if (message == ConnectionEvent.WebRTCConnectionDoneChecking) 
+                await source == "audio" ? setAudioConnectivity("connected") : setVideoConnectivity("connected")
+            if (message == ConnectionEvent.WebRTCConnectionChecking) 
+                await source == "audio" ? setAudioConnectivity("connecting") : setVideoConnectivity("connecting")
 
-                if (message == ConnectionEvent.ApplicationStarted) {
-                    await TurnOnConfirm(message, text);
-                    setAudioConnectivity("started");
-                    setVideoConnectivity("started");
-                }
+            if (message == ConnectionEvent.ApplicationStarted) {
+                await TurnOnConfirm(message,text)
+                setAudioConnectivity("started") 
+                setVideoConnectivity("started")
             }
-        );
+        })
 
-        setPlatform((old) => {
-            if (platform == null) return getPlatform();
-            else return platform as Platform;
-        });
+        setPlatform(old => { 
+            if (platform == null) 
+                return getPlatform() 
+            else 
+                return platform as Platform
+        })
 
-        SetupConnection().catch((error) => {
+        SetupConnection().catch(error => {
             TurnOnStatus(error);
-        });
+        })
 
-        checkHorizontal(window.innerWidth, window.innerHeight);
-        window.addEventListener("resize", (e: UIEvent) => {
-            checkHorizontal(window.innerWidth, window.innerHeight);
-        });
 
-        return () => {
-            window.removeEventListener("resize", (e: UIEvent) => {
-                checkHorizontal(window.innerWidth, window.innerHeight);
-            });
-        };
+        
+		checkHorizontal(window.innerWidth,window.innerHeight)
+        window.addEventListener('resize', (e: UIEvent) => {
+                checkHorizontal(window.innerWidth, window.innerHeight)
+		})
+
+		return () => { 
+           window.removeEventListener('resize', (e: UIEvent) => { 
+               checkHorizontal(window.innerWidth, window.innerHeight)
+			})
+		}
     }, []);
 
-    const toggle_mouse_touch_callback = async function (enable: boolean) {
+    const toggleMouseTouchCallback=async function(enable: boolean) { 
         client?.hid?.DisableTouch(!enable);
         client?.hid?.DisableMouse(!enable);
-    };
-    const bitrate_callback = async function (bitrate: number) {
+    } 
+    const bitrateCallback= async function (bitrate: number) { 
         client?.ChangeBitrate(bitrate);
         client?.ChangeFramerate(55);
-    };
-    const GamepadACallback = async function (
-        x: number,
-        y: number,
-        type: "left" | "right"
-    ): Promise<void> {
-        client?.hid?.VirtualGamepadAxis(x, y, type);
-    };
-    const GamepadBCallback = async function (
-        index: number,
-        type: "up" | "down"
-    ): Promise<void> {
-        client?.hid?.VirtualGamepadButtonSlider(type == "down", index);
-    };
-    const MouseMoveCallback = async function (
-        x: number,
-        y: number
-    ): Promise<void> {
-        client?.hid?.mouseMoveRel({ movementX: x, movementY: y });
-    };
-    const MouseButtonCallback = async function (
-        index: number,
-        type: "up" | "down"
-    ): Promise<void> {
-        type == "down"
-            ? client?.hid?.MouseButtonDown({ button: index })
-            : client?.hid?.MouseButtonUp({ button: index });
-    };
-    const keystuckCallback = async function (): Promise<void> {
+    } 
+    const GamepadACallback=async function(x: number, y: number, type: "left" | "right"): Promise<void> {
+        client?.hid?.VirtualGamepadAxis(x,y,type);
+    } 
+    const GamepadBCallback=async function(index: number, type: "up" | "down"): Promise<void> {
+        client?.hid?.VirtualGamepadButtonSlider(type == 'down',index);
+    }  
+    const MouseMoveCallback=async function (x: number, y: number): Promise<void> {
+        client?.hid?.mouseMoveRel({movementX:x,movementY:y});
+    } 
+    const MouseButtonCallback=async function (index: number, type: "up" | "down"): Promise<void> {
+        type == 'down' 
+            ? client?.hid?.MouseButtonDown({button: index}) 
+            : client?.hid?.MouseButtonUp({button: index})
+    } 
+    const keystuckCallback= async function (): Promise<void> {
         client?.hid?.ResetKeyStuck();
-    };
-    const clipboardSetCallback = async function (val: string): Promise<void> {
-        client?.hid?.SetClipboard(val);
-        client?.hid?.PasteClipboard();
-    };
-    const audioCallback = async () => {
-        try {
-            client?.ResetAudio();
-            await remoteAudio.current.play();
-            await remoteVideo.current.play();
+    }
+    const clipboardSetCallback= async function (val: string): Promise<void> {
+        client?.hid?.SetClipboard(val)
+        client?.hid?.PasteClipboard()
+    }
+    const audioCallback = async() => {
+        try { 
+            client?.ResetAudio()
+            await remoteAudio.current.play() 
+            await remoteVideo.current.play() 
         } catch (e) {
-            console.log(`error play audio ${JSON.stringify(e)}`);
+            console.log(`error play audio ${JSON.stringify(e)}`)
         }
-    };
+    }
     return (
         <Body>
             <RemoteVideo
@@ -239,10 +223,10 @@ export default function Home() {
                 playsInline
                 loop
             ></RemoteVideo>
-            <WebRTCControl
-                platform={Platform}
-                toggle_mouse_touch_callback={toggle_mouse_touch_callback}
-                bitrate_callback={bitrate_callback}
+            <WebRTCControl 
+                platform={Platform} 
+                toggle_mouse_touch_callback={toggleMouseTouchCallback}
+                bitrate_callback={bitrateCallback}
                 GamepadACallback={GamepadACallback}
                 GamepadBCallback={GamepadBCallback}
                 MouseMoveCallback={MouseMoveCallback}
