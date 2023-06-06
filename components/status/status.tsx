@@ -1,6 +1,7 @@
 import styled, { keyframes } from "styled-components";
 import * as React from 'react';
 import { IoIosArrowForward, IoIosArrowBack } from "react-icons/io";
+import { useSearchParams } from "next/navigation";
 
 
 const slideInAnimation = keyframes`
@@ -31,6 +32,7 @@ const Container = styled.div`
 	animation-duration: 0.5s;
 	animation-timing-function: ease-in-out;
 	animation-fill-mode: both;
+	z-index: 1;
 	/*transform: translateX(5%);		*/
 
 	&.slide-in {
@@ -70,12 +72,14 @@ const Button = styled.button`
 interface Props {
 	videoConnect?: 'loading' | 'connect' | 'disconnect' | string
 	audioConnect?: 'loading' | 'connect' | 'disconnect' | string
-	fps?: string
+	fps: number,
+	bitrate: number
 }
 
 function StatusConnect(props: Props) {
-	const { videoConnect, audioConnect, fps } = props
-	const [isOpen, setOpen] = React.useState(true)
+	const { videoConnect, audioConnect, fps, bitrate } = props
+	const searchParams = useSearchParams();
+	const [isOpen, setOpen] = React.useState(searchParams.get('show_stats') === 'true')
 
 	const handleOpen = () => {
 		setOpen(!isOpen)
@@ -94,6 +98,7 @@ function StatusConnect(props: Props) {
 					<Text>Status Video: {videoConnect}</Text>
 					<Text>Status audio: {audioConnect}</Text>
 					<Text>Fps: {fps}</Text>
+					<Text>Bitrate: {bitrate / 1000} mbps</Text>
 				</WrapperContent>
 			}
 

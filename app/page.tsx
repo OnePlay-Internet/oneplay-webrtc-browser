@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
-import video_desktop from "../public/assets/videos/video_demo_desktop.mp4";
+import video_desktop from "../public/assets/videos/video_gameplay.mp4";
 import styled from "styled-components";
 
 import {
@@ -52,11 +52,13 @@ export default function Home () {
     const user_ref   = searchParams.get('uref') ?? undefined
     const ref        = searchParams.get('ref')  ?? ref_local 
     const platform   = searchParams.get('platform'); 
+    const brString   = searchParams.get('bitrate');
+    const fpsString  = searchParams.get('fps');
+    
+    const [bitrate, setBitrate] = useState((Number(brString) || 10000) > 10000 ? 10000 : Number(brString));
+    const [fps, setFps] = useState((Number(fpsString) || 55) > 55 ? 55 : Number(fpsString));
 
     const [Platform,setPlatform] = useState<Platform>(null);
-    const [showStats, setShowStats] = useState<boolean>(
-        searchParams.get("show_stats") === "true"
-    );
 
     const redirectToLogin = () => {
         location.href =
@@ -121,6 +123,9 @@ export default function Home () {
             remoteVideo.current, 
             remoteAudio.current,   
             Platform)
+
+        client.ChangeBitrate(bitrate);
+        client.ChangeFramerate(fps);
         
         client.HandleMetrics = async (metrics: Metrics) => {
 
@@ -181,8 +186,14 @@ export default function Home () {
     } 
     const bitrateCallback= async function (bitrate: number) { 
         client?.ChangeBitrate(bitrate);
-        client?.ChangeFramerate(55);
+        client?.ChangeFramerate(fps);
+        setBitrate(bitrate);
     } 
+    const fpsCallback = async function (fps: number) {
+        client?.ChangeBitrate(bitrate);
+        client?.ChangeFramerate(fps);
+        setFps(fps);
+    }
     const GamepadACallback=async function(x: number, y: number, type: "left" | "right"): Promise<void> {
         client?.hid?.VirtualGamepadAxis(x,y,type);
     } 
@@ -227,6 +238,7 @@ export default function Home () {
                 platform={Platform} 
                 toggle_mouse_touch_callback={toggleMouseTouchCallback}
                 bitrate_callback={bitrateCallback}
+                fps_callback={fpsCallback}
                 GamepadACallback={GamepadACallback}
                 GamepadBCallback={GamepadBCallback}
                 MouseMoveCallback={MouseMoveCallback}
@@ -252,13 +264,12 @@ export default function Home () {
                     </TextModal>
                 </ContentModal>
             </Modal>
-            {showStats && (
-                <StatusConnect
-                    videoConnect={videoConnectivity}
-                    audioConnect={audioConnectivity}
-                    fps={"55fps"}
-                />
-            )}
+            <StatusConnect
+                videoConnect={videoConnectivity}
+                audioConnect={audioConnectivity}
+                fps={fps}
+                bitrate={bitrate}
+            />
         </Body>
     );
 }

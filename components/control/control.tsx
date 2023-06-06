@@ -1,6 +1,6 @@
 "use client"
 
-import { Fullscreen, Key, VolumeUp } from "@mui/icons-material";
+import { Fullscreen, Key, PowerOutlined, PowerSettingsNewOutlined, SpeedOutlined, VolumeUp } from "@mui/icons-material";
 import SportsEsportsOutlinedIcon from '@mui/icons-material/SportsEsportsOutlined';
 import MouseOutlinedIcon from '@mui/icons-material/MouseOutlined';
 import VideoSettingsOutlinedIcon from '@mui/icons-material/VideoSettingsOutlined';
@@ -10,7 +10,7 @@ import ListIcon from '@mui/icons-material/List';
 import React, { useEffect, useState, useLayoutEffect, createContext } from "react"; // we need this to make JSX compile
 import { Platform } from "../../core/src/utils/platform";
 import { requestFullscreen } from "../../core/src/utils/screen";
-import { AskSelectBitrate, TurnOnClipboard } from "../popup/popup";
+import { AskSelectBitrate, AskSelectFps, TurnOnClipboard } from "../popup/popup";
 import { VirtualGamepad } from "../virtGamepad/virtGamepad";
 import { VirtualMouse } from "../virtMouse/virtMouse";
 import Draggable, { DraggableData, DraggableEvent } from "react-draggable";
@@ -43,7 +43,7 @@ export const WebRTCControl = (input: {
 	keystuckCallback: () => Promise<void>,
 	audioCallback: () => Promise<void>,
 	clipboardSetCallback: (val: string) => Promise<void>,
-
+	fps_callback: (fps: number) => Promise<void>,
 	bitrate_callback: (bitrate: number) => Promise<void>,
 	toggle_mouse_touch_callback: (enable: boolean) => Promise<void>,
 	platform: Platform
@@ -106,11 +106,24 @@ export const WebRTCControl = (input: {
 				name: "Bitrate",
 				action: async () => {
 					let bitrate = await AskSelectBitrate();
-					if (bitrate < 500) {
+					if (!bitrate || bitrate < 500) {
 						return;
 					}
 					console.log(`bitrate is change to ${bitrate}`);
 					await input.bitrate_callback(bitrate); // don't touch async await here, you'll regret that
+				},
+			},
+			{
+				icon: <SpeedOutlined />,
+				name: "FPS",
+				action: async () => {
+					try {
+						let fps = await AskSelectFps();
+						if (!fps || fps < 30) {
+							return;
+						}
+						await input.fps_callback(fps);
+					} catch {}
 				},
 			},
 			{
@@ -160,6 +173,10 @@ export const WebRTCControl = (input: {
 				action: () => {
 					setModalSettingOpen(true)
 				},
+			}, {
+				icon: <PowerSettingsNewOutlined />,
+				name: "Quit",
+				action: () => { history.back() },
 			}])
 		} else {
 			setactions([{
@@ -168,12 +185,24 @@ export const WebRTCControl = (input: {
 				action: async () => {
 					try {
 						let bitrate = await AskSelectBitrate();
-						if (bitrate < 500) {
+						if (!bitrate || bitrate < 500) {
 							return;
 						}
 						console.log(`bitrate is change to ${bitrate}`);
 						await input.bitrate_callback(bitrate);
 					} catch { }
+				},
+			}, {
+				icon: <SpeedOutlined />,
+				name: "FPS",
+				action: async () => {
+					try {
+						let fps = await AskSelectFps();
+						if (!fps || fps < 30) {
+							return;
+						}
+						await input.fps_callback(fps);
+					} catch {}
 				},
 			}, {
 				icon: <Fullscreen />,
@@ -187,6 +216,10 @@ export const WebRTCControl = (input: {
 				icon: <KeyboardIcon />,
 				name: "If some of your key is stuck",
 				action: () => { input.keystuckCallback() },
+			}, {
+				icon: <PowerSettingsNewOutlined />,
+				name: "Quit",
+				action: () => { history.back() },
 			}])
 		}
 	}, [input.platform])
