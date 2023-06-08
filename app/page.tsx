@@ -25,7 +25,7 @@ import Swal from "sweetalert2";
 import { generateSHA256 } from "../utils/hash-util";
 import config from "../config.json";
 import Cookies from "js-cookie";
-import StatusConnect from "../components/status/status";
+import Metric  from "../components/metric/metric";
 
 let client: RemoteDesktopClient = null;
 
@@ -33,6 +33,14 @@ export default function Home () {
     const [videoConnectivity,setVideoConnectivity] = useState<string>('not started');
     const [audioConnectivity,setAudioConnectivity] = useState<string>('not started');
     const [isGuideModalOpen, setGuideModalOpen] = useState(true)
+    const [metrics,setMetrics] = useState<{
+        index                             : number
+        receivefps                        : number
+        decodefps                         : number
+        packetloss                        : number     
+        bandwidth                         : number     
+        buffer                            : number
+    }[]>([])
 
     useLayoutEffect(()=>{
         const isGuideModalLocal = localStorage.getItem('isGuideModalLocal')
@@ -53,10 +61,8 @@ export default function Home () {
     const ref        = searchParams.get('ref')  ?? ref_local 
     const platform   = searchParams.get('platform'); 
     const brString   = searchParams.get('bitrate');
-    const fpsString  = searchParams.get('fps');
     
     const [bitrate, setBitrate] = useState((Number(brString) || 10000) > 10000 ? 10000 : Number(brString));
-    const [fps, setFps] = useState((Number(fpsString) || 55) > 55 ? 55 : Number(fpsString));
 
     const [Platform,setPlatform] = useState<Platform>(null);
 
@@ -125,9 +131,28 @@ export default function Home () {
             Platform)
 
         client.ChangeBitrate(bitrate);
-        client.ChangeFramerate(fps);
+        client.ChangeFramerate(55);
         
         client.HandleMetrics = async (metrics: Metrics) => {
+            switch (metrics.type) {
+                case 'VIDEO':
+                    const dat : any[] = []
+                    for (let index = 0; index < metrics.decodefps.length; index++) {
+                        const element = metrics.decodefps[index];
+                        dat.push({
+                            index: index,
+                            receivefps : metrics.receivefps[index],
+                            decodefps  : metrics.decodefps[index],
+                            packetloss : metrics.packetloss[index],
+                            bandwidth  : metrics.bandwidth[index],
+                            buffer     : metrics.buffer[index],
+                        })
+                    }
+                    setMetrics(dat)
+                    break;
+                default:
+                    break;
+            }
 
         }
     }
@@ -135,47 +160,47 @@ export default function Home () {
 
 	const [isModalOpen, setModalOpen] = useState(false)
 	const checkHorizontal = (width: number,height:number) => {
-        if (Platform == 'mobile') 
-            setModalOpen(width < height)
+       if (Platform == 'mobile') 
+           setModalOpen(width < height)
 	}
 
     useEffect(() => {
-       AddNotifier(async (message: ConnectionEvent, text?: string, source?: string) => {
-            if (message == ConnectionEvent.WebRTCConnectionClosed) 
-                await source == "audio" ? setAudioConnectivity("closed") : setVideoConnectivity("closed")
-            if (message == ConnectionEvent.WebRTCConnectionDoneChecking) 
-                await source == "audio" ? setAudioConnectivity("connected") : setVideoConnectivity("connected")
-            if (message == ConnectionEvent.WebRTCConnectionChecking) 
-                await source == "audio" ? setAudioConnectivity("connecting") : setVideoConnectivity("connecting")
+      AddNotifier(async (message: ConnectionEvent, text?: string, source?: string) => {
+           if (message == ConnectionEvent.WebRTCConnectionClosed) 
+               await source == "audio" ? setAudioConnectivity("closed") : setVideoConnectivity("closed")
+           if (message == ConnectionEvent.WebRTCConnectionDoneChecking) 
+               await source == "audio" ? setAudioConnectivity("connected") : setVideoConnectivity("connected")
+           if (message == ConnectionEvent.WebRTCConnectionChecking) 
+               await source == "audio" ? setAudioConnectivity("connecting") : setVideoConnectivity("connecting")
 
-            if (message == ConnectionEvent.ApplicationStarted) {
-                await TurnOnConfirm(message,text)
-                setAudioConnectivity("started") 
-                setVideoConnectivity("started")
-            }
-        })
+           if (message == ConnectionEvent.ApplicationStarted) {
+               await TurnOnConfirm(message,text)
+               setAudioConnectivity("started") 
+               setVideoConnectivity("started")
+           }
+       })
 
-        setPlatform(old => { 
-            if (platform == null) 
-                return getPlatform() 
-            else 
-                return platform as Platform
-        })
+       setPlatform(old => { 
+           if (platform == null) 
+               return getPlatform() 
+           else 
+               return platform as Platform
+       })
 
-        SetupConnection().catch(error => {
-            TurnOnStatus(error);
-        })
+       SetupConnection().catch(error => {
+           TurnOnStatus(error);
+       })
 
 
         
 		checkHorizontal(window.innerWidth,window.innerHeight)
-        window.addEventListener('resize', (e: UIEvent) => {
-                checkHorizontal(window.innerWidth, window.innerHeight)
+       window.addEventListener('resize', (e: UIEvent) => {
+               checkHorizontal(window.innerWidth, window.innerHeight)
 		})
 
 		return () => { 
-           window.removeEventListener('resize', (e: UIEvent) => { 
-               checkHorizontal(window.innerWidth, window.innerHeight)
+          window.removeEventListener('resize', (e: UIEvent) => { 
+              checkHorizontal(window.innerWidth, window.innerHeight)
 			})
 		}
     }, []);
@@ -186,14 +211,9 @@ export default function Home () {
     } 
     const bitrateCallback= async function (bitrate: number) { 
         client?.ChangeBitrate(bitrate);
-        client?.ChangeFramerate(fps);
+        client?.ChangeFramerate(55);
         setBitrate(bitrate);
     } 
-    const fpsCallback = async function (fps: number) {
-        client?.ChangeBitrate(bitrate);
-        client?.ChangeFramerate(fps);
-        setFps(fps);
-    }
     const GamepadACallback=async function(x: number, y: number, type: "left" | "right"): Promise<void> {
         client?.hid?.VirtualGamepadAxis(x,y,type);
     } 
@@ -238,7 +258,6 @@ export default function Home () {
                 platform={Platform} 
                 toggle_mouse_touch_callback={toggleMouseTouchCallback}
                 bitrate_callback={bitrateCallback}
-                fps_callback={fpsCallback}
                 GamepadACallback={GamepadACallback}
                 GamepadBCallback={GamepadBCallback}
                 MouseMoveCallback={MouseMoveCallback}
@@ -256,18 +275,24 @@ export default function Home () {
                 loop={true}
                 style={{ zIndex: -5, opacity: 0 }}
             ></audio>
-            <Modal open={isModalOpen} onClose={() => setModalOpen(false)}>
-                <ContentModal>
-                    <IconHorizontalPhone />
-                    <TextModal>
-                        Please rotate the phone horizontally!!
-                    </TextModal>
-                </ContentModal>
-            </Modal>
-            <StatusConnect
-                videoConnect={videoConnectivity}
-                audioConnect={audioConnectivity}
-                fps={fps}
+			<Modal
+				open={isModalOpen}
+				onClose={() => setModalOpen(false)}
+			>
+				<ContentModal
+				>
+					<IconHorizontalPhone />
+					<TextModal>Please rotate the phone horizontally!!</TextModal>
+				</ContentModal>
+			</Modal>
+            <Metric
+            	videoConnect={videoConnectivity}
+	            audioConnect={audioConnectivity}
+                decodeFPS={metrics.map(x => { return {key: x.index, value: x.decodefps} })}
+                receiveFPS={metrics.map(x => { return {key: x.index, value: x.receivefps} })}
+                packetLoss={metrics.map(x => { return {key: x.index, value: x.packetloss} })}
+                bandwidth={metrics.map(x => { return {key: x.index, value: x.bandwidth} })}
+                buffer={metrics.map(x => { return {key: x.index, value: x.buffer} })}
                 bitrate={bitrate}
             />
         </Body>

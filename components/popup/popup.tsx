@@ -197,22 +197,3 @@ export async function AskSelectBitrate(): Promise<number> {
 
     return Number.parseInt(bitrate);
 }
-
-export async function AskSelectFps(): Promise<number> {
-    TurnOffStatus();
-    const { value: fps } = await Swal.fire({
-        title: "Select FPS",
-        input: "select",
-        inputOptions: {
-            "30": "30 mbps",
-            "55": "55 mbps",
-        },
-        inputPlaceholder: "Select FPS",
-        showCancelButton: false,
-        inputValidator: (value) => {
-            return "";
-        },
-    });
-
-    return Number(fps);
-}
