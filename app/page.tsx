@@ -157,12 +157,11 @@ export default function Home () {
         }
     }
 
-
-	const [isModalOpen, setModalOpen] = useState(false)
-	const checkHorizontal = (width: number,height:number) => {
+    const [isModalOpen, setModalOpen] = useState(false)
+    const checkHorizontal = (width: number,height:number) => {
        if (Platform == 'mobile') 
            setModalOpen(width < height)
-	}
+    }
 
     useEffect(() => {
       AddNotifier(async (message: ConnectionEvent, text?: string, source?: string) => {
@@ -191,9 +190,7 @@ export default function Home () {
            TurnOnStatus(error);
        })
 
-
-        
-		checkHorizontal(window.innerWidth,window.innerHeight)
+       checkHorizontal(window.innerWidth,window.innerHeight)
        window.addEventListener('resize', (e: UIEvent) => {
                checkHorizontal(window.innerWidth, window.innerHeight)
 		})
@@ -203,7 +200,8 @@ export default function Home () {
               checkHorizontal(window.innerWidth, window.innerHeight)
 			})
 		}
-    }, []);
+    }, [Platform]);
+
 
     const toggleMouseTouchCallback=async function(enable: boolean) { 
         client?.hid?.DisableTouch(!enable);
@@ -277,7 +275,6 @@ export default function Home () {
             ></audio>
 			<Modal
 				open={isModalOpen}
-				onClose={() => setModalOpen(false)}
 			>
 				<ContentModal
 				>
@@ -294,6 +291,7 @@ export default function Home () {
                 bandwidth={metrics.map(x => { return {key: x.index, value: x.bandwidth} })}
                 buffer={metrics.map(x => { return {key: x.index, value: x.buffer} })}
                 bitrate={bitrate}
+                platform={Platform}
             />
         </Body>
     );

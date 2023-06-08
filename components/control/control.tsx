@@ -235,8 +235,6 @@ export const WebRTCControl = (input: {
 					ButtonCallback={input.GamepadBCallback}
 					AxisCallback={input.GamepadACallback}
 					draggable={enableVGamepad}
-					SelectCallback={() => { }}
-					StartCallback={() => { }}
 				/>
 
 				<Setting
