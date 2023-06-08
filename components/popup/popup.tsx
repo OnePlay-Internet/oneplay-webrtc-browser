@@ -57,7 +57,7 @@ export function TurnOnStatus(status: string, text?: string): void {
         title: `${status}`,
         text: text ?? "Please wait while the client is getting ready...",
         showConfirmButton: false,
-        timer: 7000,
+        timer: 2000,
         willOpen: () => Swal.showLoading(null),
         willClose: () => Swal.hideLoading(),
     });
@@ -187,11 +187,6 @@ export async function AskSelectBitrate(): Promise<number> {
             "6000": "6 mbps",
             "8000": "8 mbps",
             "10000": "10 mbps",
-            "20000": "20 mbps",
-            "30000": "30 mbps",
-            "40000": "40 mbps",
-            "60000": "60 mbps",
-            "80000": "80 mbps",
         },
         inputPlaceholder: "Select bitrate",
         showCancelButton: false,
@@ -201,4 +196,23 @@ export async function AskSelectBitrate(): Promise<number> {
     });
 
     return Number.parseInt(bitrate);
+}
+
+export async function AskSelectFps(): Promise<number> {
+    TurnOffStatus();
+    const { value: fps } = await Swal.fire({
+        title: "Select FPS",
+        input: "select",
+        inputOptions: {
+            "30": "30 mbps",
+            "55": "55 mbps",
+        },
+        inputPlaceholder: "Select FPS",
+        showCancelButton: false,
+        inputValidator: (value) => {
+            return "";
+        },
+    });
+
+    return Number(fps);
 }

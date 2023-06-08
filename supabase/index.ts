@@ -2,18 +2,18 @@
 
 import { SupabaseClient, User } from "@supabase/supabase-js";
 import { createBrowserSupabaseClient } from '@supabase/auth-helpers-nextjs'
+import { SignalingConfig } from "../core/src/signaling/config";
 
 export type SbFunction = 'worker_session_create' | 'worker_session_deactivate' | 'worker_profile_fetch' | 'session_authenticate' 
 export const createBrowserClient = () => createBrowserSupabaseClient()
 export type AuthSessionResp = {
 	id 	  : string
 	email : string
-	token : string
 	webrtc : RTCConfiguration
 	signaling : {
-        HostName      : string 
-        SignalingPort : number 
-        WebsocketURL  : string 
+		audioURL : string
+		videoURL : string
+		dataURL  : string
     }
 }
 export default class SbCore {
@@ -27,6 +27,7 @@ export default class SbCore {
 			provider: "google",
 			options: {
 				redirectTo:'https://remote.thinkmay.net',
+				// redirectTo:'http://localhost:3000',
 				queryParams: {
 					access_type: "offline",
 					prompt: "consent",
@@ -50,9 +51,8 @@ export default class SbCore {
 
 
 	public async AuthenticateSession(ref : string, uref?: string): Promise<{
-		token: string
-		email: string
-		SignalingURL : string
+		Email: string
+		SignalingConfig : SignalingConfig
 		WebRTCConfig : RTCConfiguration
 		PingCallback : () => Promise<void>
 	} | Error> {
@@ -74,20 +74,21 @@ export default class SbCore {
 		if(error != null)
 			return new Error(error)
 
-		return  {
-			token : data.token,
-			email : data.email,
-			SignalingURL : data.signaling.WebsocketURL,
-			WebRTCConfig : data.webrtc,
-			PingCallback: async () => {
-				const { error } = await this.supabase.rpc(`ping_session`, { 
-					session_id: data.id 
-				})
+		const pingFunc = async () => {
+			const { error } = await this.supabase.rpc(`ping_session`, { 
+				session_id: data.id 
+			})
 
-				if (error != null ) {
-					throw `unable to ping ${error.message}`	
-				}
+			if (error != null ) {
+				throw `unable to ping ${error.message}`	
 			}
+		}
+
+		return  {
+			Email 			: data.email,
+			SignalingConfig : data.signaling,
+			WebRTCConfig 	: data.webrtc,
+			PingCallback	: pingFunc,
 		}
 	}
 }

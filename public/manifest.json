@@ -1,0 +1,17 @@
+{
+    "theme_color": "#151515",
+    "display": "standalone",
+    "scope": "/webplay/?runas=pwa",
+    "start_url": "/webplay/?runas=pwa",
+    "name": "OnePlay",
+    "short_name": "OnePlay",
+    "description": "OnePlay",
+    "icons": [
+        {
+            "src": "/webplay/favicon.ico",
+            "type": "image/png",
+            "sizes": "72x72",
+            "purpose": "any"
+        }
+    ]
+}

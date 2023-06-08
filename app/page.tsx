@@ -1,54 +1,71 @@
-"use client"
+"use client";
 
-import React, { useEffect, useRef, useState } from "react";
-import video_desktop from "../public/assets/videos/video_demo_desktop.mp4";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import video_desktop from "../public/assets/videos/video_gameplay.mp4";
 import styled from "styled-components";
+
 import {
     TurnOnConfirm,
     TurnOnStatus,
 } from "../components/popup/popup";
-import { WebRTCClient } from "../core/src/app";
-import { useRouter, useSearchParams } from "next/navigation";
+import { Metrics, RemoteDesktopClient } from "../core/src/app";
+import { useSearchParams } from "next/navigation";
 import {
     AddNotifier,
     ConnectionEvent,
     LogConnectionEvent,
 } from "../core/src/utils/log";
 import { WebRTCControl } from "../components/control/control";
-import {
-	getPlatform,
-	Platform,
-} from "../core/src/utils/platform";
+import { getPlatform, Platform } from "../core/src/utils/platform";
 import SbCore from "../supabase";
 import { Modal } from "@mui/material";
 import { IconHorizontalPhone } from "../public/assets/svg/svg_cpn";
 import { RendermixApi } from "../api/rendermix-api";
 import Swal from "sweetalert2";
 import { generateSHA256 } from "../utils/hash-util";
-import config from '../config.json';
+import config from "../config.json";
 import Cookies from "js-cookie";
+import StatusConnect from "../components/status/status";
 
-let client : WebRTCClient = null
+let client: RemoteDesktopClient = null;
 
 export default function Home () {
+    const [videoConnectivity,setVideoConnectivity] = useState<string>('not started');
+    const [audioConnectivity,setAudioConnectivity] = useState<string>('not started');
+    const [isGuideModalOpen, setGuideModalOpen] = useState(true)
+
+    useLayoutEffect(()=>{
+        const isGuideModalLocal = localStorage.getItem('isGuideModalLocal')
+        if(isGuideModalLocal == 'false' || isGuideModalLocal == 'true'){
+            setGuideModalOpen(JSON.parse(isGuideModalLocal))
+        }
+    },[])
     const remoteVideo = useRef<HTMLVideoElement>(null);
     const remoteAudio = useRef<HTMLAudioElement>(null);
-    const searchParams = useSearchParams();
-    const router = useRouter()
 
     let ref_local        = ''
     if (typeof window !== 'undefined') {
         ref_local        = localStorage.getItem("reference")
     }
+
+    const searchParams = useSearchParams();
     const user_ref   = searchParams.get('uref') ?? undefined
     const ref        = searchParams.get('ref')  ?? ref_local 
     const platform   = searchParams.get('platform'); 
+    const brString   = searchParams.get('bitrate');
+    const fpsString  = searchParams.get('fps');
+    
+    const [bitrate, setBitrate] = useState((Number(brString) || 10000) > 10000 ? 10000 : Number(brString));
+    const [fps, setFps] = useState((Number(fpsString) || 55) > 55 ? 55 : Number(fpsString));
 
     const [Platform,setPlatform] = useState<Platform>(null);
 
     const redirectToLogin = () => {
-        location.href = config.app_domain + '/login?redirectUrl=' + encodeURIComponent(location.href);
-    }
+        location.href =
+            config.app_domain +
+            "/login?redirectUrl=" +
+            encodeURIComponent(location.href);
+    };
 
     const SetupConnection = async () => {
         const sessionToken = Cookies.get("op_session_token");
@@ -62,11 +79,11 @@ export default function Home () {
         const { user_id } = await api.getProfile();
 
         localStorage.setItem("reference",ref)
-        
+            
         const core = new SbCore()
         if (!await core.Authenticated() && user_ref == undefined) 
-			await core.LoginWithGoogle()
-        
+                await core.LoginWithGoogle()
+            
         if(ref == null) 
             return
 
@@ -74,15 +91,15 @@ export default function Home () {
         if (result instanceof Error) 
             return
 
-        const {token,email,SignalingURL,WebRTCConfig,PingCallback} = result
+        const {Email ,SignalingConfig ,WebRTCConfig,PingCallback} = result
 
-        const emailToCompare = (await generateSHA256(user_id)) + "@oneplay.in"
+        const emailToCompare = (await generateSHA256(user_id)) + "@oneplay.in";
 
-        if (emailToCompare !== email) {
+        if (emailToCompare !== Email) {
             return Swal.fire({
-                icon: 'info',
-                title: 'Invalid Link',
-                text: 'Please login with different user',
+                icon: "info",
+                title: "Invalid Link",
+                text: "Please login with different user",
                 confirmButtonText: "Login",
                 showCancelButton: true,
             }).then((res) => {
@@ -97,75 +114,86 @@ export default function Home () {
                 }
             });
         }
-
+        
         setInterval(PingCallback,14000)
 
-        LogConnectionEvent(ConnectionEvent.ApplicationStarted);
-
-        client = new WebRTCClient(
-            SignalingURL,token, WebRTCConfig,
+        await LogConnectionEvent(ConnectionEvent.ApplicationStarted)
+        client = new RemoteDesktopClient(
+            SignalingConfig,WebRTCConfig,
             remoteVideo.current, 
-            remoteAudio.current,  
+            remoteAudio.current,   
             Platform)
+
+        client.ChangeBitrate(bitrate);
+        client.ChangeFramerate(fps);
+        
+        client.HandleMetrics = async (metrics: Metrics) => {
+
+        }
     }
 
-    
+
 	const [isModalOpen, setModalOpen] = useState(false)
 	const checkHorizontal = (width: number,height:number) => {
-        setModalOpen(width < height)
+        if (Platform == 'mobile') 
+            setModalOpen(width < height)
 	}
 
     useEffect(() => {
-        AddNotifier(async (message: ConnectionEvent, text?: string) => {
-            if(message == ConnectionEvent.WebSocketConnected || 
-                message == ConnectionEvent.ExchangingSignalingMessage || 
-                message == ConnectionEvent.WaitingAvailableDeviceSelection)  {
-                return;
-            }
+       AddNotifier(async (message: ConnectionEvent, text?: string, source?: string) => {
+            if (message == ConnectionEvent.WebRTCConnectionClosed) 
+                await source == "audio" ? setAudioConnectivity("closed") : setVideoConnectivity("closed")
+            if (message == ConnectionEvent.WebRTCConnectionDoneChecking) 
+                await source == "audio" ? setAudioConnectivity("connected") : setVideoConnectivity("connected")
+            if (message == ConnectionEvent.WebRTCConnectionChecking) 
+                await source == "audio" ? setAudioConnectivity("connecting") : setVideoConnectivity("connecting")
 
-            if (message == ConnectionEvent.ApplicationStarted ||
-                message == ConnectionEvent.ReceivedVideoStream ||
-                message == ConnectionEvent.ReceivedAudioStream ) {
+            if (message == ConnectionEvent.ApplicationStarted) {
                 await TurnOnConfirm(message,text)
-                return
+                setAudioConnectivity("started") 
+                setVideoConnectivity("started")
             }
-            
-            TurnOnStatus(message,text);
+        })
 
-            if(message == ConnectionEvent.WebRTCConnectionClosed) 
-                router.refresh();
+        setPlatform(old => { 
+            if (platform == null) 
+                return getPlatform() 
+            else 
+                return platform as Platform
         })
 
         SetupConnection().catch(error => {
             TurnOnStatus(error);
         })
 
-        setPlatform(old => { if (old == null) return getPlatform() })
 
-        if(getPlatform() != 'mobile')
-            return
         
 		checkHorizontal(window.innerWidth,window.innerHeight)
         window.addEventListener('resize', (e: UIEvent) => {
-			checkHorizontal(window.innerWidth, window.innerHeight)
+                checkHorizontal(window.innerWidth, window.innerHeight)
 		})
 
 		return () => { 
-            window.removeEventListener('resize', (e: UIEvent) => { 
-                checkHorizontal(window.innerWidth, window.innerHeight)
+           window.removeEventListener('resize', (e: UIEvent) => { 
+               checkHorizontal(window.innerWidth, window.innerHeight)
 			})
 		}
     }, []);
 
-
-    const toggle_mouse_touch_callback=async function(enable: boolean) { 
+    const toggleMouseTouchCallback=async function(enable: boolean) { 
         client?.hid?.DisableTouch(!enable);
         client?.hid?.DisableMouse(!enable);
     } 
-    const bitrate_callback= async function (bitrate: number) { 
+    const bitrateCallback= async function (bitrate: number) { 
         client?.ChangeBitrate(bitrate);
-        client?.ChangeFramerate(55);
+        client?.ChangeFramerate(fps);
+        setBitrate(bitrate);
     } 
+    const fpsCallback = async function (fps: number) {
+        client?.ChangeBitrate(bitrate);
+        client?.ChangeFramerate(fps);
+        setFps(fps);
+    }
     const GamepadACallback=async function(x: number, y: number, type: "left" | "right"): Promise<void> {
         client?.hid?.VirtualGamepadAxis(x,y,type);
     } 
@@ -176,13 +204,14 @@ export default function Home () {
         client?.hid?.mouseMoveRel({movementX:x,movementY:y});
     } 
     const MouseButtonCallback=async function (index: number, type: "up" | "down"): Promise<void> {
-        type == 'down' ? client?.hid?.MouseButtonDown({button: index}) : client?.hid?.MouseButtonUp({button: index})
+        type == 'down' 
+            ? client?.hid?.MouseButtonDown({button: index}) 
+            : client?.hid?.MouseButtonUp({button: index})
     } 
     const keystuckCallback= async function (): Promise<void> {
         client?.hid?.ResetKeyStuck();
     }
     const clipboardSetCallback= async function (val: string): Promise<void> {
-        console.log(val)
         client?.hid?.SetClipboard(val)
         client?.hid?.PasteClipboard()
     }
@@ -199,32 +228,17 @@ export default function Home () {
         <Body>
             <RemoteVideo
                 ref={remoteVideo}
-                src={platform == 'desktop' ? video_desktop : video_desktop}
+                src={platform == "desktop" ? video_desktop : video_desktop}
                 autoPlay
                 muted
                 playsInline
                 loop
             ></RemoteVideo>
-            <App
-                onContextMenu={(e) => {
-                    e.preventDefault()
-                }}
-                onMouseUp={(e: MouseEvent) => {
-                    e.preventDefault();
-                }}
-                onMouseDown={(e: MouseEvent) => {
-                    e.preventDefault();
-                }}
-                onKeyUp={(e: KeyboardEvent) => {
-                    e.preventDefault();
-                }}
-                onKeyDown={(e: KeyboardEvent) => {
-                    e.preventDefault();
-                }}
-            >
-                <WebRTCControl platform={Platform} 
-                toggle_mouse_touch_callback={toggle_mouse_touch_callback}
-                bitrate_callback={bitrate_callback}
+            <WebRTCControl 
+                platform={Platform} 
+                toggle_mouse_touch_callback={toggleMouseTouchCallback}
+                bitrate_callback={bitrateCallback}
+                fps_callback={fpsCallback}
                 GamepadACallback={GamepadACallback}
                 GamepadBCallback={GamepadBCallback}
                 MouseMoveCallback={MouseMoveCallback}
@@ -232,8 +246,7 @@ export default function Home () {
                 keystuckCallback={keystuckCallback}
                 audioCallback={audioCallback}
                 clipboardSetCallback={clipboardSetCallback}
-                ></WebRTCControl>
-            </App>
+            ></WebRTCControl>
             <audio
                 ref={remoteAudio}
                 autoPlay={true}
@@ -243,19 +256,23 @@ export default function Home () {
                 loop={true}
                 style={{ zIndex: -5, opacity: 0 }}
             ></audio>
-			<Modal
-				open={isModalOpen}
-				onClose={() => setModalOpen(false)}
-			>
-				<ContentModal
-				>
-					<IconHorizontalPhone />
-					<TextModal>Please rotate the phone horizontally!!</TextModal>
-				</ContentModal>
-			</Modal>
+            <Modal open={isModalOpen} onClose={() => setModalOpen(false)}>
+                <ContentModal>
+                    <IconHorizontalPhone />
+                    <TextModal>
+                        Please rotate the phone horizontally!!
+                    </TextModal>
+                </ContentModal>
+            </Modal>
+            <StatusConnect
+                videoConnect={videoConnectivity}
+                audioConnect={audioConnectivity}
+                fps={fps}
+                bitrate={bitrate}
+            />
         </Body>
     );
-};
+}
 
 const RemoteVideo = styled.video`
     position: absolute;
@@ -282,23 +299,21 @@ const Body = styled.div`
     background-color: black;
 `;
 const App = styled.div`
-    touch-action: none;
     position: relative;
     width: 100vw;
     height: 100vh;
 `;
 const ContentModal = styled.div`
-	display: flex;
-	flex-direction: column;
-	gap: 16px;
-	align-items: center;
-	justify-content: center;
-	width: 100%;
-	height: 100%;
-	
-`
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+`;
 const TextModal = styled.p`
-	font-weight: 500;
-	color: white;
-`
+    font-weight: 500;
+    color: white;
+`;
 //export default Home;?
