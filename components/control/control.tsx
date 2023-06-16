@@ -1,23 +1,21 @@
 "use client"
 
-import { Fullscreen, Key, PowerOutlined, PowerSettingsNewOutlined, SpeedOutlined, VolumeUp } from "@mui/icons-material";
+import { Fullscreen, PowerSettingsNewOutlined, VolumeUp } from "@mui/icons-material";
 import SportsEsportsOutlinedIcon from '@mui/icons-material/SportsEsportsOutlined';
 import MouseOutlinedIcon from '@mui/icons-material/MouseOutlined';
 import VideoSettingsOutlinedIcon from '@mui/icons-material/VideoSettingsOutlined';
 import KeyboardIcon from '@mui/icons-material/Keyboard';
-import { List, SpeedDial, SpeedDialAction } from "@mui/material";
-import ListIcon from '@mui/icons-material/List';
-import React, { useEffect, useState, useLayoutEffect, createContext } from "react"; // we need this to make JSX compile
+import React, { useEffect, useState, createContext } from "react"; // we need this to make JSX compile
 import { Platform } from "../../core/src/utils/platform";
 import { requestFullscreen } from "../../core/src/utils/screen";
-import { AskSelectBitrate, AskSelectFps, TurnOnClipboard } from "../popup/popup";
+import { AskSelectBitrate, TurnOnClipboard } from "../popup/popup";
 import { VirtualGamepad } from "../virtGamepad/virtGamepad";
 import { VirtualMouse } from "../virtMouse/virtMouse";
-import Draggable, { DraggableData, DraggableEvent } from "react-draggable";
 import MobileControl from "./mobileControl";
 import SettingsIcon from '@mui/icons-material/Settings';
 import DesktopControl from "./desktopControl";
 import Setting from "../setting/setting";
+import styled from "styled-components";
 
 
 export type ButtonMode = "static" | "draggable" | "disable";
@@ -43,7 +41,6 @@ export const WebRTCControl = (input: {
 	keystuckCallback: () => Promise<void>,
 	audioCallback: () => Promise<void>,
 	clipboardSetCallback: (val: string) => Promise<void>,
-	fps_callback: (fps: number) => Promise<void>,
 	bitrate_callback: (bitrate: number) => Promise<void>,
 	toggle_mouse_touch_callback: (enable: boolean) => Promise<void>,
 	platform: Platform
@@ -114,19 +111,6 @@ export const WebRTCControl = (input: {
 				},
 			},
 			{
-				icon: <SpeedOutlined />,
-				name: "FPS",
-				action: async () => {
-					try {
-						let fps = await AskSelectFps();
-						if (!fps || fps < 30) {
-							return;
-						}
-						await input.fps_callback(fps);
-					} catch {}
-				},
-			},
-			{
 				icon: <SportsEsportsOutlinedIcon />,
 				name: "Edit VGamepad",
 				action: async () => {
@@ -193,18 +177,6 @@ export const WebRTCControl = (input: {
 					} catch { }
 				},
 			}, {
-				icon: <SpeedOutlined />,
-				name: "FPS",
-				action: async () => {
-					try {
-						let fps = await AskSelectFps();
-						if (!fps || fps < 30) {
-							return;
-						}
-						await input.fps_callback(fps);
-					} catch {}
-				},
-			}, {
 				icon: <Fullscreen />,
 				name: "Enter fullscreen",
 				action: () => { requestFullscreen() }
@@ -231,40 +203,55 @@ export const WebRTCControl = (input: {
 	}
 	return (
 		<ConTrolContext.Provider value={contextValue}>
-			<div
-				className="containerDrag"
-				style={{ maxWidth: 'max-content', maxHeight: 'max-content' }}
+			<App
+                onContextMenu=	{e => e.preventDefault()}
+                onMouseUp=		{e => e.preventDefault()}
+                onMouseDown=	{e => e.preventDefault()}
+                onKeyUp=		{e => e.preventDefault()}
+                onKeyDown=		{e => e.preventDefault()}
 			>
-				{
-					input.platform === 'mobile' ?
+				<div
+					className="containerDrag"
+					style={{ maxWidth: 'max-content', maxHeight: 'max-content' }}
+				>
+					{
+						input.platform === 'mobile' ?
 
-						<MobileControl
-							actions={actions}
-							isShowBtn={enableVGamepad === 'draggable' || enableVMouse === 'draggable'}
-							onOkey={handleOkeyDragValue}
-							onDefault={handleSetDeafaultDragValue}
-						/> : (<DesktopControl actions={actions} />)
-				}
-			</div>
+							<MobileControl
+								actions={actions}
+								isShowBtn={enableVGamepad === 'draggable' || enableVMouse === 'draggable'}
+								onOkey={handleOkeyDragValue}
+								onDefault={handleSetDeafaultDragValue}
+							/> : (<DesktopControl actions={actions} />)
+					}
+				</div>
 
-			<VirtualMouse
-				MouseMoveCallback={input.MouseMoveCallback}
-				MouseButtonCallback={input.MouseButtonCallback}
-				draggable={enableVMouse} />
+				<VirtualMouse
+					MouseMoveCallback={input.MouseMoveCallback}
+					MouseButtonCallback={input.MouseButtonCallback}
+					draggable={enableVMouse} />
 
-			<VirtualGamepad
-				ButtonCallback={input.GamepadBCallback}
-				AxisCallback={input.GamepadACallback}
-				draggable={enableVGamepad}
-				SelectCallback={() => { }}
-				StartCallback={() => { }}
-			/>
+				<VirtualGamepad
+					ButtonCallback={input.GamepadBCallback}
+					AxisCallback={input.GamepadACallback}
+					draggable={enableVGamepad}
+				/>
 
-			<Setting
-				onDraggable={handleDraggable}
-				isOpen={isModalSettingOpen}
-				closeModal={() => { setModalSettingOpen(false) }}
-			/>
+				<Setting
+					onDraggable={handleDraggable}
+					isOpen={isModalSettingOpen}
+					closeModal={() => { setModalSettingOpen(false) }}
+				/>
+			</App>
 		</ConTrolContext.Provider >
 	);
 };
+
+
+
+const App = styled.div`
+    touch-action: none;
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+`;
