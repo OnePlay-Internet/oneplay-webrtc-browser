@@ -149,6 +149,8 @@ export default function Home () {
                         })
                     }
                     setMetrics(dat)
+                case 'FRAME_LOSS':
+                    console.log("frame loss occur")
                     break;
                 default:
                     break;
