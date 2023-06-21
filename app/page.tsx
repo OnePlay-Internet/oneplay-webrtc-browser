@@ -101,25 +101,25 @@ export default function Home () {
 
         const emailToCompare = (await generateSHA256(user_id)) + "@oneplay.in";
 
-        if (emailToCompare !== Email) {
-            return Swal.fire({
-                icon: "info",
-                title: "Invalid Link",
-                text: "Please login with different user",
-                confirmButtonText: "Login",
-                showCancelButton: true,
-            }).then((res) => {
-                if (res.isConfirmed) {
-                    Cookies.remove("op_session_token", {
-                        domain: config.cookie_domain,
-                        path: "/",
-                    });
-                    redirectToLogin();
-                } else {
-                    location.href = config.app_domain;
-                }
-            });
-        }
+        // if (emailToCompare !== Email) {
+        //     return Swal.fire({
+        //         icon: "info",
+        //         title: "Invalid Link",
+        //         text: "Please login with different user",
+        //         confirmButtonText: "Login",
+        //         showCancelButton: true,
+        //     }).then((res) => {
+        //         if (res.isConfirmed) {
+        //             Cookies.remove("op_session_token", {
+        //                 domain: config.cookie_domain,
+        //                 path: "/",
+        //             });
+        //             redirectToLogin();
+        //         } else {
+        //             location.href = config.app_domain;
+        //         }
+        //     });
+        // }
         
         setInterval(PingCallback,14000)
 
@@ -159,12 +159,6 @@ export default function Home () {
         }
     }
 
-    const [isModalOpen, setModalOpen] = useState(false)
-    const checkHorizontal = (width: number,height:number) => {
-       if (Platform == 'mobile') 
-           setModalOpen(width < height)
-    }
-
     useEffect(() => {
       AddNotifier(async (message: ConnectionEvent, text?: string, source?: string) => {
            if (message == ConnectionEvent.WebRTCConnectionClosed) 
@@ -191,16 +185,24 @@ export default function Home () {
        SetupConnection().catch(error => {
            TurnOnStatus(error);
        })
+    }, []);
 
-       checkHorizontal(window.innerWidth,window.innerHeight)
-       window.addEventListener('resize', (e: UIEvent) => {
-               checkHorizontal(window.innerWidth, window.innerHeight)
+    const [isModalOpen, setModalOpen] = useState(false)
+    const checkHorizontal = (width: number,height:number) => {
+       if (Platform == 'mobile') 
+           setModalOpen(width < height)
+    }
+
+    useEffect(() => {
+        checkHorizontal(window.innerWidth,window.innerHeight)
+        window.addEventListener('resize', (e: UIEvent) => {
+            checkHorizontal(window.innerWidth, window.innerHeight)
 		})
 
 		return () => { 
-          window.removeEventListener('resize', (e: UIEvent) => { 
-              checkHorizontal(window.innerWidth, window.innerHeight)
-			})
+            window.removeEventListener('resize', (e: UIEvent) => { 
+                checkHorizontal(window.innerWidth, window.innerHeight)
+		    })
 		}
     }, [Platform]);
 
