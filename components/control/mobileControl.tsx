@@ -84,6 +84,8 @@ interface Action {
 	action: () => void,
 }
 interface Props {
+	isOpen: boolean,
+	handleOpen: () => void,
 	actions: Action[],
 	isShowBtn: boolean
 	onOkey: () => Promise<void>
@@ -91,12 +93,7 @@ interface Props {
 }
 
 function MobileControl(props: Props) {
-	const { actions, isShowBtn, onOkey, onDefault } = props
-	const [isOpen, setOpen] = React.useState(false)
-
-	const handleOpen = () => {
-		setOpen(!isOpen)
-	}
+	const { actions, isShowBtn, onOkey, onDefault, isOpen, handleOpen } = props
 	
 	return (
 		<Container className={isOpen ? 'slide-out' : 'slide-in'}>

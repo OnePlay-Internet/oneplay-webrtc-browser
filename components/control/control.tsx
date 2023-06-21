@@ -74,6 +74,20 @@ export const WebRTCControl = (input: {
 	const [tempPos, setTempPos] = useState()
 	const [isSetVGamePadDefaultValue, setVGamePadDefaultValue] = useState(false)
 	const [isSetVMouseDefaultValue, setVMouseDefaultValue] = useState(false)
+	const [isControlOpen, setIsControlOpen] = useState(false)
+
+	const toggleGamepad = () => {
+		setIsControlOpen(s => !s);
+		setenableVMouse('disable')
+		setenableVGamepad((prev) => {
+			switch (prev) {
+				case "disable":
+					return "static";
+				case "static":
+					return "disable";
+			}
+		});
+	}
 
 	const handleOkeyDragValue = async () => {
 		if (enableVGamepad === 'draggable') 
@@ -113,18 +127,7 @@ export const WebRTCControl = (input: {
 			{
 				icon: <SportsEsportsOutlinedIcon />,
 				name: "Edit VGamepad",
-				action: async () => {
-
-					setenableVMouse('disable')
-					setenableVGamepad((prev) => {
-						switch (prev) {
-							case "disable":
-								return "static";
-							case "static":
-								return "disable";
-						}
-					});
-				},
+				action: () => toggleGamepad(),
 			},
 			// {
 			// 	icon: <MouseOutlinedIcon />,
@@ -220,6 +223,8 @@ export const WebRTCControl = (input: {
 						input.platform === 'mobile' ?
 
 							<MobileControl
+								isOpen={isControlOpen}
+								handleOpen={() => setIsControlOpen(s => !s)}
 								actions={actions}
 								isShowBtn={enableVGamepad === 'draggable' || enableVMouse === 'draggable'}
 								onOkey={handleOkeyDragValue}
@@ -234,6 +239,7 @@ export const WebRTCControl = (input: {
 					draggable={enableVMouse} />
 
 				<VirtualGamepad
+					toggle={toggleGamepad}
 					ButtonCallback={input.GamepadBCallback}
 					AxisCallback={input.GamepadACallback}
 					draggable={enableVGamepad}
