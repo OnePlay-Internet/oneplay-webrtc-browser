@@ -101,25 +101,25 @@ export default function Home () {
 
         const emailToCompare = (await generateSHA256(user_id)) + "@oneplay.in";
 
-        // if (emailToCompare !== Email) {
-        //     return Swal.fire({
-        //         icon: "info",
-        //         title: "Invalid Link",
-        //         text: "Please login with different user",
-        //         confirmButtonText: "Login",
-        //         showCancelButton: true,
-        //     }).then((res) => {
-        //         if (res.isConfirmed) {
-        //             Cookies.remove("op_session_token", {
-        //                 domain: config.cookie_domain,
-        //                 path: "/",
-        //             });
-        //             redirectToLogin();
-        //         } else {
-        //             location.href = config.app_domain;
-        //         }
-        //     });
-        // }
+        if (emailToCompare !== Email) {
+            return Swal.fire({
+                icon: "info",
+                title: "Invalid Link",
+                text: "Please login with different user",
+                confirmButtonText: "Login",
+                showCancelButton: true,
+            }).then((res) => {
+                if (res.isConfirmed) {
+                    Cookies.remove("op_session_token", {
+                        domain: config.cookie_domain,
+                        path: "/",
+                    });
+                    redirectToLogin();
+                } else {
+                    location.href = config.app_domain;
+                }
+            });
+        }
         
         setInterval(PingCallback,14000)
 
