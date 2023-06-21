@@ -31,6 +31,7 @@ body {
     font-family: Roboto, sans-serif; */
     font-size: 10px;
     font-family: Poppins,sans-serif;
+    background: black;
 }
 body > button {
     color: #c3b5b5;

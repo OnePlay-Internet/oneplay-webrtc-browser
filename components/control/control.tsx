@@ -125,22 +125,24 @@ export const WebRTCControl = (input: {
 						}
 					});
 				},
-			}, {
-				icon: <MouseOutlinedIcon />,
-				name: "Enable VMouse",
-				action: () => {
-					setenableVGamepad('disable')
-					setenableVMouse((prev) => {
-						switch (prev) {
-							case "disable":
-								return "static";
-							case "static":
-								return "disable";
-						}
-					});
+			},
+			// {
+			// 	icon: <MouseOutlinedIcon />,
+			// 	name: "Enable VMouse",
+			// 	action: () => {
+			// 		setenableVGamepad('disable')
+			// 		setenableVMouse((prev) => {
+			// 			switch (prev) {
+			// 				case "disable":
+			// 					return "static";
+			// 				case "static":
+			// 					return "disable";
+			// 			}
+			// 		});
 
-				},
-			}, {
+			// 	},
+			// },
+			{
 				icon: <VolumeUp />,
 				name: "If your audio is muted",
 				action: () => { input.audioCallback() },
