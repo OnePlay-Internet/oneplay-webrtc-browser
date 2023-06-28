@@ -18,10 +18,12 @@ import { LeftFuncButton, RightFuncButton } from "./gamepad/func_button";
 import { useSetting } from "../../context/settingProvider";
 import ArrowLeftIcon from '@mui/icons-material/ArrowLeft';
 import ArrowRightIcon from '@mui/icons-material/ArrowRight';
+import SportsEsportsOutlinedIcon from '@mui/icons-material/SportsEsportsOutlined';
 const BUTTON_SIZE = 50
 const JOYSTICK_SIZE = 100
 
 export const VirtualGamepad = (props: {
+    toggle: () => void;
     draggable: ButtonMode;
     AxisCallback: (
         x: number,
@@ -33,6 +35,7 @@ export const VirtualGamepad = (props: {
     const { draggable,
         AxisCallback,
         ButtonCallback,
+        toggle,
     } = props
 
 
@@ -47,6 +50,7 @@ export const VirtualGamepad = (props: {
                     />
 
                     <ButtonGroupRight
+                        toggle={toggle}
                         AxisCallback={AxisCallback}
                         ButtonCallback={ButtonCallback}
                         draggable={draggable}
@@ -114,7 +118,7 @@ const defaultButtonGroupRightValue = {
     funcBtn: { x: 518, y: 19 },
     subBtn: { x: 252, y: 10 }
 }
-export const ButtonGroupRight = (props: ButtonGroupProps) => {
+export const ButtonGroupRight = (props: ButtonGroupProps & {toggle: () => void}) => {
     const { settingValue } = useSetting()
     const [isPending, startTransition] = useTransition()
     const { isSetVGamePadDefaultValue } = useContext(ConTrolContext);
@@ -140,7 +144,7 @@ export const ButtonGroupRight = (props: ButtonGroupProps) => {
                 ybxa: { x: deviceWidth * 0.75, y: deviceHeight * 0.413 },
                 joystick: { x: deviceWidth * 0.6, y: deviceHeight * 0.6 },
                 funcBtn: { x: deviceWidth * 0.68, y: deviceHeight * 0.043 },
-                subBtn: { x: deviceWidth * 0.45, y: deviceHeight * 0.03 },
+                subBtn: { x: deviceWidth * 0.40, y: deviceHeight * 0.03 },
             })
             return
         }
@@ -231,6 +235,9 @@ export const ButtonGroupRight = (props: ButtonGroupProps) => {
                     >
                         <ArrowLeftIcon />
                     </SelectBtn>
+                    <PowerBtn onClick={() => props.toggle()}>
+                        <SportsEsportsOutlinedIcon />
+                    </PowerBtn>
                     <StartBtn
                         onTouchStart={() => props.ButtonCallback(9, "down")} 
                         onTouchEnd={() => props.ButtonCallback(9, "up")}
@@ -440,6 +447,7 @@ const StartBtn = styled(CssDefaultCenterBtn)`
     top: 50%;
     left: 10px;*/
 `;
+const PowerBtn = styled(CssDefaultCenterBtn)``;
 
 const JoyStickRight = styled(JoyStick)`
     /*position: absolute;

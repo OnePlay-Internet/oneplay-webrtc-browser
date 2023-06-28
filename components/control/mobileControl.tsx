@@ -60,7 +60,7 @@ const Text = styled.span`
 const Button = styled.button`
 	position: absolute;
 	top: -50%;
-    right: 0;
+    right: -4px;
     bottom: -50%;
 	outline: none;
 	border: none;
@@ -84,6 +84,8 @@ interface Action {
 	action: () => void,
 }
 interface Props {
+	isOpen: boolean,
+	handleOpen: () => void,
 	actions: Action[],
 	isShowBtn: boolean
 	onOkey: () => Promise<void>
@@ -91,12 +93,7 @@ interface Props {
 }
 
 function MobileControl(props: Props) {
-	const { actions, isShowBtn, onOkey, onDefault } = props
-	const [isOpen, setOpen] = React.useState(false)
-
-	const handleOpen = () => {
-		setOpen(!isOpen)
-	}
+	const { actions, isShowBtn, onOkey, onDefault, isOpen, handleOpen } = props
 	
 	return (
 		<Container className={isOpen ? 'slide-out' : 'slide-in'}>
@@ -120,8 +117,8 @@ function MobileControl(props: Props) {
 			<Button onClick={handleOpen}>
 				{
 					isOpen 
-					? <IoIosArrowForward color="white" /> 
-					: <IoIosArrowBack color="white" />
+					? <IoIosArrowForward color="white" style={{fontSize:20}}/> 
+					: <IoIosArrowBack color="white"    style={{fontSize:20}} />
 				}
 			</Button>
 

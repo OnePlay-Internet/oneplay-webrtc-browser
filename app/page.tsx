@@ -149,18 +149,14 @@ export default function Home () {
                         })
                     }
                     setMetrics(dat)
+                case 'FRAME_LOSS':
+                    console.log("frame loss occur")
                     break;
                 default:
                     break;
             }
 
         }
-    }
-
-    const [isModalOpen, setModalOpen] = useState(false)
-    const checkHorizontal = (width: number,height:number) => {
-       if (Platform == 'mobile') 
-           setModalOpen(width < height)
     }
 
     useEffect(() => {
@@ -189,16 +185,24 @@ export default function Home () {
        SetupConnection().catch(error => {
            TurnOnStatus(error);
        })
+    }, []);
 
-       checkHorizontal(window.innerWidth,window.innerHeight)
-       window.addEventListener('resize', (e: UIEvent) => {
-               checkHorizontal(window.innerWidth, window.innerHeight)
+    const [isModalOpen, setModalOpen] = useState(false)
+    const checkHorizontal = (width: number,height:number) => {
+       if (Platform == 'mobile') 
+           setModalOpen(width < height)
+    }
+
+    useEffect(() => {
+        checkHorizontal(window.innerWidth,window.innerHeight)
+        window.addEventListener('resize', (e: UIEvent) => {
+            checkHorizontal(window.innerWidth, window.innerHeight)
 		})
 
 		return () => { 
-          window.removeEventListener('resize', (e: UIEvent) => { 
-              checkHorizontal(window.innerWidth, window.innerHeight)
-			})
+            window.removeEventListener('resize', (e: UIEvent) => { 
+                checkHorizontal(window.innerWidth, window.innerHeight)
+		    })
 		}
     }, [Platform]);
 

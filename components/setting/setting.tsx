@@ -140,10 +140,10 @@ function Setting(props: Props) {
 								<label style={{fontSize: '1.5rem'}} htmlFor="checkbox1">Gamepad</label>
 								<input style={{width: 20, height: 20}} onChange={onChangeInput} type="checkbox" name="VGamePad" id="checkbox1" />
 							</CheckBox>
-							<CheckBox>
+							{/* <CheckBox>
 								<label style={{fontSize: '1.5rem'}} htmlFor="checkbox2">Mouse</label>
 								<input style={{width: 20, height: 20}} onChange={onChangeInput} type="checkbox" name="VMouse" id="checkbox2" />
-							</CheckBox>
+							</CheckBox> */}
 						</WrapperCheckbox>
 						
 					</WrapperButton>
