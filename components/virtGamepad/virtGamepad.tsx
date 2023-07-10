@@ -93,8 +93,8 @@ export const JoyStick = (param: {
                 stop={move}
                 move={move}
                 size={size}
-                baseColor="#000"
-                stickColor="hwb(360 51% 76%)"
+                baseColor="rgba(0, 0, 0, 0.1)"
+                stickColor="rgba(255, 255, 255, 0.52"
                 disabled={draggable === 'draggable'}
             />
         </WrapperJoyStick>
@@ -113,10 +113,10 @@ type Position = {
     subBtn?: Coordinates
 }
 const defaultButtonGroupRightValue = {
-    ybxa: { x: 520, y: 125 },
-    joystick: { x: 400, y: 200 },
-    funcBtn: { x: 518, y: 19 },
-    subBtn: { x: 252, y: 10 }
+    ybxa: { x: 0.75, y: 0.413 },
+    joystick: { x: 0.6, y: 0.6 },
+    funcBtn: { x: 0.68, y: 0.043 },
+    subBtn: { x: 0.4, y: 0.03 }
 }
 export const ButtonGroupRight = (props: ButtonGroupProps & {toggle: () => void}) => {
     const { settingValue } = useSetting()
@@ -137,14 +137,13 @@ export const ButtonGroupRight = (props: ButtonGroupProps & {toggle: () => void})
     useLayoutEffect(() => {
         let cache = localStorage.getItem(`right_group_pos`);
         if (cache === null) {
-            setPosBtn(defaultButtonGroupRightValue)
             const deviceWidth = window.innerWidth
             const deviceHeight = window.innerHeight
             setPosBtn({
-                ybxa: { x: deviceWidth * 0.75, y: deviceHeight * 0.413 },
-                joystick: { x: deviceWidth * 0.6, y: deviceHeight * 0.6 },
-                funcBtn: { x: deviceWidth * 0.68, y: deviceHeight * 0.043 },
-                subBtn: { x: deviceWidth * 0.40, y: deviceHeight * 0.03 },
+                ybxa: { x: deviceWidth * defaultButtonGroupRightValue.ybxa.x, y: deviceHeight * defaultButtonGroupRightValue.ybxa.y },
+                joystick: { x: deviceWidth * defaultButtonGroupRightValue.joystick.x, y: deviceHeight * defaultButtonGroupRightValue.joystick.y },
+                funcBtn: { x: deviceWidth * defaultButtonGroupRightValue.funcBtn.x, y: deviceHeight * defaultButtonGroupRightValue.funcBtn.y },
+                subBtn: { x: deviceWidth * defaultButtonGroupRightValue.subBtn.x, y: deviceHeight * defaultButtonGroupRightValue.subBtn.y },
             })
             return
         }
@@ -185,8 +184,16 @@ export const ButtonGroupRight = (props: ButtonGroupProps & {toggle: () => void})
     //reset default value
     useEffect(() => {
         if (isSetVGamePadDefaultValue === true) {
-            setPosBtn(defaultButtonGroupRightValue)
-            localStorage.setItem(`right_group_pos`, JSON.stringify(defaultButtonGroupRightValue));
+            const deviceWidth = window.innerWidth
+            const deviceHeight = window.innerHeight
+            const defaultPos = {
+                ybxa: { x: deviceWidth * defaultButtonGroupRightValue.ybxa.x, y: deviceHeight * defaultButtonGroupRightValue.ybxa.y },
+                joystick: { x: deviceWidth * defaultButtonGroupRightValue.joystick.x, y: deviceHeight * defaultButtonGroupRightValue.joystick.y },
+                funcBtn: { x: deviceWidth * defaultButtonGroupRightValue.funcBtn.x, y: deviceHeight * defaultButtonGroupRightValue.funcBtn.y },
+                subBtn: { x: deviceWidth * defaultButtonGroupRightValue.subBtn.x, y: deviceHeight * defaultButtonGroupRightValue.subBtn.y },
+            }
+            setPosBtn(defaultPos)
+            localStorage.setItem(`right_group_pos`, JSON.stringify(defaultPos));
 
         }
     }, [isSetVGamePadDefaultValue])
@@ -268,9 +275,9 @@ export const ButtonGroupRight = (props: ButtonGroupProps & {toggle: () => void})
 };
 
 const defaultButtonGroupLeftValue = {
-    dpad: { x: 166, y: 107 },
-    joystick: { x: 244, y: 150 },
-    funcBtn: { x: 132, y: 18 }
+    dpad: { x: 0.15, y: 0.45 },
+    joystick: { x: 0.2, y: 0.7 },
+    funcBtn: { x: 0.13, y: 0.043 }
 }
 export const ButtonGroupLeft = (param: ButtonGroupProps) => {
     const { settingValue } = useSetting()
@@ -292,9 +299,9 @@ export const ButtonGroupLeft = (param: ButtonGroupProps) => {
             const deviceWidth = window.innerWidth
             const deviceHeight = window.innerHeight
             setPosBtn({
-                dpad: { x: deviceWidth * 0.22, y: deviceHeight * 0.41 },
-                joystick: { x: deviceWidth * 0.29, y: deviceHeight * 0.64 },
-                funcBtn: { x: deviceWidth * 0.15, y: deviceHeight * 0.043 },
+                dpad: { x: deviceWidth * defaultButtonGroupLeftValue.dpad.x, y: deviceHeight * defaultButtonGroupLeftValue.dpad.y },
+                joystick: { x: deviceWidth * defaultButtonGroupLeftValue.joystick.x, y: deviceHeight * defaultButtonGroupLeftValue.joystick.y },
+                funcBtn: { x: deviceWidth * defaultButtonGroupLeftValue.funcBtn.x, y: deviceHeight * defaultButtonGroupLeftValue.funcBtn.y },
             })
             return
         }
@@ -334,8 +341,15 @@ export const ButtonGroupLeft = (param: ButtonGroupProps) => {
     //reset default value
     useEffect(() => {
         if (isSetVGamePadDefaultValue === true) {
-            setPosBtn(defaultButtonGroupLeftValue)
-            localStorage.setItem(`left_group_pos`, JSON.stringify(defaultButtonGroupLeftValue));
+            const deviceWidth = window.innerWidth
+            const deviceHeight = window.innerHeight
+            const defaultPos = {
+                dpad: { x: deviceWidth * defaultButtonGroupLeftValue.dpad.x, y: deviceHeight * defaultButtonGroupLeftValue.dpad.y },
+                joystick: { x: deviceWidth * defaultButtonGroupLeftValue.joystick.x, y: deviceHeight * defaultButtonGroupLeftValue.joystick.y },
+                funcBtn: { x: deviceWidth * defaultButtonGroupLeftValue.funcBtn.x, y: deviceHeight * defaultButtonGroupLeftValue.funcBtn.y },
+            }
+            setPosBtn(defaultPos)
+            localStorage.setItem(`left_group_pos`, JSON.stringify(defaultPos));
 
         }
     }, [isSetVGamePadDefaultValue])
@@ -465,6 +479,8 @@ const JoyStickLeft = styled(JoyStick)`
 const ContainerSubButton = styled.div`
     display: flex;
     gap: 8px;
+    width: max-content;
+    position: absolute;
 `
 const WrapperDraggable = styled.div`
     width: max-content;

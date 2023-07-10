@@ -61,6 +61,8 @@ export default function Home () {
     const ref        = searchParams.get('ref')  ?? ref_local 
     const platform   = searchParams.get('platform'); 
     const brString   = searchParams.get('bitrate');
+    const turn       = searchParams.get('turn') == "true";
+    const no_video   = searchParams.get('phonepad') == "true";
     
     const [bitrate, setBitrate] = useState((Number(brString) || 10000) > 10000 ? 10000 : Number(brString));
 
@@ -131,10 +133,12 @@ export default function Home () {
 
         await LogConnectionEvent(ConnectionEvent.ApplicationStarted)
         client = new RemoteDesktopClient(
-            SignalingConfig,WebRTCConfig,
+            SignalingConfig,
+            {...WebRTCConfig,iceTransportPolicy: turn ? "relay" : "all"},
             remoteVideo.current, 
             remoteAudio.current,   
-            Platform)
+            Platform,
+            no_video)
 
         client.ChangeBitrate(bitrate);
         client.ChangeFramerate(55);
