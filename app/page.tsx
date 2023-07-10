@@ -86,16 +86,22 @@ export default function Home () {
 
         localStorage.setItem("reference",ref)
             
+        
+        if(!ref || !user_ref) {
+            return Swal.fire({
+                icon: "error",
+                title: "Invalid Link"
+            }).then(() => location.href = config.app_domain);
+        }
+        
         const core = new SbCore()
-        if (!await core.Authenticated() && user_ref == undefined) 
-                await core.LoginWithGoogle()
-            
-        if(ref == null) 
-            return
-
         const result = await core.AuthenticateSession(ref,user_ref)
-        if (result instanceof Error) 
-            return
+        if (result instanceof Error) {
+            return Swal.fire({
+                icon: "error",
+                title: "Invalid Link"
+            }).then(() => location.href = config.app_domain);
+        }
 
         const {Email ,SignalingConfig ,WebRTCConfig,PingCallback} = result
 
@@ -103,7 +109,7 @@ export default function Home () {
 
         if (emailToCompare !== Email) {
             return Swal.fire({
-                icon: "info",
+                icon: "error",
                 title: "Invalid Link",
                 text: "Please login with different user",
                 confirmButtonText: "Login",
