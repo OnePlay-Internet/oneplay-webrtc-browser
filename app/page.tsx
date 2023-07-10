@@ -58,6 +58,8 @@ export default function Home () {
     const user_ref   = searchParams.get('uref') ?? undefined
     const ref        = searchParams.get('ref')  ?? ref_local 
     const platform   = searchParams.get('platform'); 
+    const turn       = searchParams.get('turn') == "true";
+    const no_video   = searchParams.get('phonepad') == "true";
 
     const [Platform,setPlatform] = useState<Platform>(null);
 
@@ -80,10 +82,11 @@ export default function Home () {
 
         await LogConnectionEvent(ConnectionEvent.ApplicationStarted)
         client = new RemoteDesktopClient(
-            SignalingConfig,WebRTCConfig,
+            SignalingConfig,
+            {...WebRTCConfig,iceTransportPolicy: turn ? "relay" : "all"},
             remoteVideo.current, 
             remoteAudio.current,   
-            Platform)
+            Platform,no_video)
         
         client.HandleMetrics = async (metrics: Metrics) => {
             switch (metrics.type) {
