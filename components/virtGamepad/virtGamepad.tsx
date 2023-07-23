@@ -1,8 +1,4 @@
 "use client"
-
-
-import { Translate } from "@mui/icons-material";
-import { Button, Stack } from "@mui/material";
 import React, { useRef, useState, useEffect, useLayoutEffect, useTransition, useContext } from "react"; // we need this to make JSX compile
 import Draggable, { DraggableData, DraggableEvent } from "react-draggable";
 import styled from "styled-components";
@@ -19,6 +15,7 @@ import { useSetting } from "../../context/settingProvider";
 import ArrowLeftIcon from '@mui/icons-material/ArrowLeft';
 import ArrowRightIcon from '@mui/icons-material/ArrowRight';
 import SportsEsportsOutlinedIcon from '@mui/icons-material/SportsEsportsOutlined';
+import Warehouse from "../../warehouse";
 const BUTTON_SIZE = 50
 const JOYSTICK_SIZE = 100
 
@@ -178,6 +175,8 @@ export const ButtonGroupRight = (props: ButtonGroupProps & {toggle: () => void})
     const handleStop = (e: DraggableEvent, data: DraggableData) => {
         startTransition(() => {
             localStorage.setItem(`right_group_pos`, JSON.stringify(posBtn));
+            const warehouse = new Warehouse()
+            warehouse.UpdateRightGroupPos(posBtn)
         })
     };
 
@@ -194,6 +193,8 @@ export const ButtonGroupRight = (props: ButtonGroupProps & {toggle: () => void})
             }
             setPosBtn(defaultPos)
             localStorage.setItem(`right_group_pos`, JSON.stringify(defaultPos));
+            const warehouse = new Warehouse()
+            warehouse.UpdateRightGroupPos(posBtn)
 
         }
     }, [isSetVGamePadDefaultValue])
@@ -335,6 +336,8 @@ export const ButtonGroupLeft = (param: ButtonGroupProps) => {
     const handleStop = (e: DraggableEvent, data: DraggableData) => {
         startTransition(() => {
             localStorage.setItem(`left_group_pos`, JSON.stringify(posBtn));
+            const warehouse = new Warehouse()
+            warehouse.UpdateLeftGroupPos(posBtn)
         })
     };
 
@@ -350,7 +353,8 @@ export const ButtonGroupLeft = (param: ButtonGroupProps) => {
             }
             setPosBtn(defaultPos)
             localStorage.setItem(`left_group_pos`, JSON.stringify(defaultPos));
-
+            const warehouse = new Warehouse()
+            warehouse.UpdateLeftGroupPos(posBtn)
         }
     }, [isSetVGamePadDefaultValue])
     return (

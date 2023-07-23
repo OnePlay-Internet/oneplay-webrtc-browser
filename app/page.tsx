@@ -18,6 +18,7 @@ import {
 import { WebRTCControl } from "../components/control/control";
 import { getPlatform, Platform } from "../core/src/utils/platform";
 import SbCore from "../supabase";
+import Warehouse from "../warehouse";
 import { Modal } from "@mui/material";
 import { IconHorizontalPhone } from "../public/assets/svg/svg_cpn";
 import { RendermixApi } from "../api/rendermix-api";
@@ -97,6 +98,18 @@ export default function Home () {
         }
         
         const core = new SbCore()
+        const warehouse = new Warehouse()
+        warehouse.WarehouseLoggingSession()
+
+        window.addEventListener('beforeunload', (e) => {
+            e.returnValue = ''
+            e.preventDefault()
+        });
+        
+        window.addEventListener('unload', () => {
+            warehouse.WarehousePush('close')
+        });
+
         const result = await core.AuthenticateSession(ref,user_ref)
         if (result instanceof Error) {
             return Swal.fire({
