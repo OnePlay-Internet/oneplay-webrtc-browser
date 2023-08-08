@@ -5,32 +5,41 @@ import video_desktop from "../public/assets/videos/video_demo_desktop.mp4";
 import styled from "styled-components";
 
 import {
+    TurnOnAlert,
     TurnOnConfirm,
     TurnOnStatus,
 } from "../components/popup/popup";
-import { Metrics, RemoteDesktopClient } from "../core/src/app";
+import { Metrics, RemoteDesktopClient } from "../core/app";
 import { useSearchParams } from "next/navigation";
 import {
     AddNotifier,
     ConnectionEvent,
+    Log,
     LogConnectionEvent,
-} from "../core/src/utils/log";
+    LogLevel,
+} from "../core/utils/log";
 import { WebRTCControl } from "../components/control/control";
 import {
 	getPlatform,
 	Platform,
-} from "../core/src/utils/platform";
+} from "../core/utils/platform";
 import SbCore from "../supabase";
 import { Modal } from "@mui/material";
 import { IconHorizontalPhone } from "../public/assets/svg/svg_cpn";
 import Metric  from "../components/metric/metric";
+import { AudioMetrics, NetworkMetrics, VideoMetrics } from "../core/qos/models";
+import { VideoWrapper } from "../core/pipeline/sink/video/wrapper";
+import { AudioWrapper } from "../core/pipeline/sink/audio/wrapper";
 
 let client : RemoteDesktopClient = null
+let callback : () => Promise<void> = async () => {};
+let video : VideoWrapper = null
+let audio : AudioWrapper = null
 
+type ConnectStatus = 'not started' | 'started' | 'connecting' | 'connected' | 'closed'
 export default function Home () {
-    const [videoConnectivity,setVideoConnectivity] = useState<string>('not started');
-    const [audioConnectivity,setAudioConnectivity] = useState<string>('not started');
-    const [isGuideModalOpen, setGuideModalOpen] = useState(true)
+    const [videoConnectivity,setVideoConnectivity] = useState<ConnectStatus>('not started');
+    const [audioConnectivity,setAudioConnectivity] = useState<ConnectStatus>('not started');
     const [metrics,setMetrics] = useState<{
         index                             : number
         receivefps                        : number
@@ -39,12 +48,15 @@ export default function Home () {
         bandwidth                         : number     
         buffer                            : number
     }[]>([])
-
-    useLayoutEffect(()=>{
-        const isGuideModalLocal = localStorage.getItem('isGuideModalLocal')
-        if(isGuideModalLocal == 'false' || isGuideModalLocal == 'true'){
-            setGuideModalOpen(JSON.parse(isGuideModalLocal))
-        }
+    useEffect(()=>{
+        window.onbeforeunload = (e: BeforeUnloadEvent) => {
+            const text = 'Are you sure (｡◕‿‿◕｡)'
+            client.hid.ResetKeyStuck()
+            e = e || window.event;
+            if (e)
+                e.returnValue = text
+            return text;
+        };
     },[])
     const remoteVideo = useRef<HTMLVideoElement>(null);
     const remoteAudio = useRef<HTMLAudioElement>(null);
@@ -63,29 +75,37 @@ export default function Home () {
 
     const [Platform,setPlatform] = useState<Platform>(null);
 
+
+    useEffect(()=>{
+        const interval = setInterval(async () => {
+            if (videoConnectivity == 'connected')
+                await callback()
+            else
+                console.log(`video is not connected, avoid ping`)
+        },14 * 1000)
+        return () =>{ clearInterval(interval) }
+    }, [videoConnectivity])
+    
     const SetupConnection = async () => {
+        if(ref == null || ref == 'null') 
+            throw new Error(`invalid URL, please check again (｡◕‿‿◕｡)`)
+
         localStorage.setItem("reference",ref)
-            
         const core = new SbCore()
         if (!await core.Authenticated() && user_ref == undefined) 
                 await core.LoginWithGoogle()
-            
-        if(ref == null) 
-            return
-
         const result = await core.AuthenticateSession(ref,user_ref)
         if (result instanceof Error) 
-            return
+            throw result
 
         const {Email ,SignalingConfig ,WebRTCConfig,PingCallback} = result
-        setInterval(PingCallback,14000)
-
-        await LogConnectionEvent(ConnectionEvent.ApplicationStarted)
+        callback = PingCallback
+        await LogConnectionEvent(ConnectionEvent.ApplicationStarted,`hi ${Email}`)
         client = new RemoteDesktopClient(
             SignalingConfig,
             {...WebRTCConfig,iceTransportPolicy: turn ? "relay" : "all"},
-            remoteVideo.current, 
-            remoteAudio.current,   
+            video, 
+            audio,   
             Platform,no_video)
         
         client.HandleMetrics = async (metrics: Metrics) => {
@@ -112,34 +132,39 @@ export default function Home () {
             }
 
         }
+        client.HandleMetricRaw = async (data: NetworkMetrics | VideoMetrics | AudioMetrics) => {
+        }
     }
 
-
     useEffect(() => {
-      AddNotifier(async (message: ConnectionEvent, text?: string, source?: string) => {
-           if (message == ConnectionEvent.WebRTCConnectionClosed) 
-               await source == "audio" ? setAudioConnectivity("closed") : setVideoConnectivity("closed")
-           if (message == ConnectionEvent.WebRTCConnectionDoneChecking) 
-               await source == "audio" ? setAudioConnectivity("connected") : setVideoConnectivity("connected")
-           if (message == ConnectionEvent.WebRTCConnectionChecking) 
-               await source == "audio" ? setAudioConnectivity("connecting") : setVideoConnectivity("connecting")
+        AddNotifier(async (message: ConnectionEvent, text?: string, source?: string) => {
+            if (message == ConnectionEvent.WebRTCConnectionClosed) 
+                await source == "audio" ? setAudioConnectivity("closed") : setVideoConnectivity("closed")
+            if (message == ConnectionEvent.WebRTCConnectionDoneChecking) 
+                await source == "audio" ? setAudioConnectivity("connected") : setVideoConnectivity("connected")
+            if (message == ConnectionEvent.WebRTCConnectionChecking) 
+                await source == "audio" ? setAudioConnectivity("connecting") : setVideoConnectivity("connecting")
 
-           if (message == ConnectionEvent.ApplicationStarted) {
-               await TurnOnConfirm(message,text)
-               setAudioConnectivity("started") 
-               setVideoConnectivity("started")
-           }
+            if (message == ConnectionEvent.ApplicationStarted) {
+                await TurnOnConfirm(message,text)
+                setAudioConnectivity("started") 
+                setVideoConnectivity("started")
+            }
+
+            Log(LogLevel.Infor,`${message} ${text ?? ""} ${source ?? ""}`)
        })
 
-       setPlatform(old => { 
+        setPlatform(old => { 
            if (platform == null) 
                return getPlatform() 
            else 
                return platform as Platform
        })
 
-       SetupConnection().catch(error => {
-           TurnOnStatus(error);
+        video = new VideoWrapper(remoteVideo.current)
+        audio = new AudioWrapper(remoteAudio.current)
+        SetupConnection().catch(error => {
+           TurnOnAlert(error);
        })
     }, []);
 
@@ -192,14 +217,12 @@ export default function Home () {
         client?.hid?.PasteClipboard()
     }
     const audioCallback = async() => {
-        try { 
-            client?.ResetAudio()
-            await remoteAudio.current.play() 
-            await remoteVideo.current.play() 
-        } catch (e) {
-            console.log(`error play audio ${JSON.stringify(e)}`)
-        }
+        client?.ResetAudio()
+        await video.play() 
+        await audio.play() 
     }
+
+
     return (
         <Body>
             <RemoteVideo
