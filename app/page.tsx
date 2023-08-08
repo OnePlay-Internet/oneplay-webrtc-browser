@@ -97,6 +97,7 @@ export default function Home () {
         }
         
         const core = new SbCore()
+
         const result = await core.AuthenticateSession(ref,user_ref)
         if (result instanceof Error) {
             return Swal.fire({

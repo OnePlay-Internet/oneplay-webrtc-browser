@@ -1,8 +1,4 @@
 "use client"
-
-
-import { Translate } from "@mui/icons-material";
-import { Button, Stack } from "@mui/material";
 import React, { useRef, useState, useEffect, useLayoutEffect, useTransition, useContext } from "react"; // we need this to make JSX compile
 import Draggable, { DraggableData, DraggableEvent } from "react-draggable";
 import styled from "styled-components";
@@ -19,6 +15,7 @@ import { useSetting } from "../../context/settingProvider";
 import ArrowLeftIcon from '@mui/icons-material/ArrowLeft';
 import ArrowRightIcon from '@mui/icons-material/ArrowRight';
 import SportsEsportsOutlinedIcon from '@mui/icons-material/SportsEsportsOutlined';
+
 const BUTTON_SIZE = 50
 const JOYSTICK_SIZE = 100
 
