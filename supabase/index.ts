@@ -3,9 +3,13 @@
 import { SupabaseClient, User } from "@supabase/supabase-js";
 import { createBrowserSupabaseClient } from '@supabase/auth-helpers-nextjs'
 import { SignalingConfig } from "../core/src/signaling/config";
+import config from '../config.json';
 
 export type SbFunction = 'worker_session_create' | 'worker_session_deactivate' | 'worker_profile_fetch' | 'session_authenticate' 
-export const createBrowserClient = () => createBrowserSupabaseClient()
+export const createBrowserClient = () => createBrowserSupabaseClient({
+	supabaseUrl: config.supabase_url,
+	supabaseKey: config.supabase_anon_key,
+})
 export type AuthSessionResp = {
 	id 	  : string
 	email : string
