@@ -2,12 +2,11 @@
 
 import { Fullscreen, PowerSettingsNewOutlined, VolumeUp } from "@mui/icons-material";
 import SportsEsportsOutlinedIcon from '@mui/icons-material/SportsEsportsOutlined';
-import MouseOutlinedIcon from '@mui/icons-material/MouseOutlined';
 import VideoSettingsOutlinedIcon from '@mui/icons-material/VideoSettingsOutlined';
 import KeyboardIcon from '@mui/icons-material/Keyboard';
 import React, { useEffect, useState, createContext } from "react"; // we need this to make JSX compile
-import { Platform } from "../../core/src/utils/platform";
-import { requestFullscreen } from "../../core/src/utils/screen";
+import { Platform } from "../../core/utils/platform";
+import { requestFullscreen } from "../../core/utils/screen";
 import { AskSelectBitrate, TurnOnClipboard } from "../popup/popup";
 import { VirtualGamepad } from "../virtGamepad/virtGamepad";
 import { VirtualMouse } from "../virtMouse/virtMouse";
