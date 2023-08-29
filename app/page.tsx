@@ -36,6 +36,7 @@ import { AudioMetrics, NetworkMetrics, VideoMetrics } from "../core/qos/models";
 import { VideoWrapper } from "../core/pipeline/sink/video/wrapper";
 import { AudioWrapper } from "../core/pipeline/sink/audio/wrapper";
 
+const reset_interval = 7 * 1000
 let client : RemoteDesktopClient = null
 let callback       : () => Promise<void> = async () => {};
 let fetch_callback : () => Promise<WorkerStatus[]> = async () => {return[]};
@@ -44,12 +45,12 @@ let audio : AudioWrapper = null
 
 type ConnectStatus = 'not started' | 'started' | 'connecting' | 'connected' | 'closed'
 export default function Home () {
+    const [connectionPath,setConnectionPath] = useState<any[]>([]);
     const [videoConnectivity,setVideoConnectivity] = useState<ConnectStatus>('not started');
     const [audioConnectivity,setAudioConnectivity] = useState<ConnectStatus>('not started');
     const got_stuck = () => { 
-        return (videoConnectivity == 'started'   && audioConnectivity == 'connected') || 
-               (videoConnectivity == 'connected' && audioConnectivity == 'started' ||
-               (videoConnectivity == 'started' && audioConnectivity == 'started'))
+        return (['started','closed'].includes(videoConnectivity)  && audioConnectivity == 'connected') || 
+               (['started','closed'].includes(audioConnectivity)  && videoConnectivity == 'connected')
     }
     const [metrics,setMetrics] = useState<{
         index                             : number
@@ -103,7 +104,7 @@ export default function Home () {
                 setTimeout(() => {
                     if (got_stuck()) 
                         client?.HardReset()                    
-                }, 10 * 1000) // hard reset afeter 10 sec
+                },reset_interval) // hard reset afeter 10 sec
             } else if (videoConnectivity == 'connected')
                 await callback()
             else
@@ -200,6 +201,7 @@ export default function Home () {
                         bandwidth  : metrics.bandwidth[index],
                         buffer     : metrics.buffer[index],
                     }}))
+                    break;
                 case 'FRAME_LOSS':
                     console.log("frame loss occur")
                     break;
@@ -209,6 +211,15 @@ export default function Home () {
 
         }
         client.HandleMetricRaw = async (data: NetworkMetrics | VideoMetrics | AudioMetrics) => {
+            if (data.type == 'network' && 
+                data.address.remote != undefined && 
+                data.address.local  != undefined)
+                setConnectionPath(old => {
+                    if(old.find(x => x.local == data.address.local) == undefined)
+                        return [...old,data.address]
+
+                    return old
+                })
         }
 
         setInterval(async () => { // TODO
@@ -228,11 +239,11 @@ export default function Home () {
     useEffect(() => {
         AddNotifier(async (message: ConnectionEvent, text?: string, source?: string) => {
             if (message == ConnectionEvent.WebRTCConnectionClosed) 
-                await source == "audio" ? setAudioConnectivity("closed") : setVideoConnectivity("closed")
+                source == "audio" ? setAudioConnectivity("closed") : setVideoConnectivity("closed")
             if (message == ConnectionEvent.WebRTCConnectionDoneChecking) 
-                await source == "audio" ? setAudioConnectivity("connected") : setVideoConnectivity("connected")
+                source == "audio" ? setAudioConnectivity("connected") : setVideoConnectivity("connected")
             if (message == ConnectionEvent.WebRTCConnectionChecking) 
-                await source == "audio" ? setAudioConnectivity("connecting") : setVideoConnectivity("connecting")
+                source == "audio" ? setAudioConnectivity("connecting") : setVideoConnectivity("connecting")
 
             if (message == ConnectionEvent.ApplicationStarted) {
                 await TurnOnConfirm(message,text)
@@ -357,6 +368,7 @@ export default function Home () {
             <Metric
             	videoConnect={videoConnectivity}
 	            audioConnect={audioConnectivity}
+                path={connectionPath}
                 decodeFPS={metrics.map(x => { return {key: x.index, value: x.decodefps} })}
                 receiveFPS={metrics.map(x => { return {key: x.index, value: x.receivefps} })}
                 packetLoss={metrics.map(x => { return {key: x.index, value: x.packetloss} })}
@@ -385,6 +397,7 @@ const RemoteVideo = styled.video`
     opacity: 1;
 `;
 const Body = styled.div`
+    position: relative;
     width: 100vw;
     height: 100vh;
     padding: 0;

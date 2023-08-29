@@ -205,12 +205,8 @@ export const WebRTCControl = (input: {
 	}
 	return (
 		<ConTrolContext.Provider value={contextValue}>
-			<App
-                onContextMenu=	{e => e.preventDefault()}
-                onMouseUp=		{e => e.preventDefault()}
-                onMouseDown=	{e => e.preventDefault()}
-                onKeyUp=		{e => e.preventDefault()}
-                onKeyDown=		{e => e.preventDefault()}
+			<
+                
 			>
 				<div
 					className="containerDrag"
@@ -250,16 +246,9 @@ export const WebRTCControl = (input: {
 					isOpen={isModalSettingOpen}
 					closeModal={() => { setModalSettingOpen(false) }}
 				/>
-			</App>
+			</>
 		</ConTrolContext.Provider >
 	);
 };
 
 
-
-const App = styled.div`
-    touch-action: none;
-    position: relative;
-    width: 100vw;
-    height: 100vh;
-`;
