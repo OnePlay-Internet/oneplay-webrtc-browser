@@ -159,6 +159,10 @@ export const WebRTCControl = (input: {
 				action: () => {
 					setModalSettingOpen(true)
 				},
+   			},{
+				icon: <Fullscreen />,
+				name: "Enter fullscreen",
+				action: () => { requestFullscreen() }
 			}, {
 				icon: <PowerSettingsNewOutlined />,
 				name: "Quit",
@@ -205,12 +209,15 @@ export const WebRTCControl = (input: {
 	}
 	return (
 		<ConTrolContext.Provider value={contextValue}>
-			<
-                
-			>
+			<>
 				<div
 					className="containerDrag"
 					style={{ maxWidth: 'max-content', maxHeight: 'max-content' }}
+					onContextMenu=	{e => e.preventDefault()}
+					onMouseUp=		{e => e.preventDefault()}
+					onMouseDown=	{e => e.preventDefault()}
+					onKeyUp=		{e => e.preventDefault()}
+					onKeyDown=		{e => e.preventDefault()}
 				>
 					{
 						input.platform === 'mobile' ?

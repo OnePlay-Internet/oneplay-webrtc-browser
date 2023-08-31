@@ -85,9 +85,10 @@ export default function Home () {
     const brString   = searchParams.get('bitrate');
     const turn       = searchParams.get('turn') == "true";
     const no_video   = searchParams.get('phonepad') == "true";
+    const low_bitrate  = searchParams.get('low_bitrate') == "true";
+    const no_mic     = searchParams.get('mutemic') == "true";
     
     const [bitrate, setBitrate] = useState((Number(brString) || 10000) > 10000 ? 10000 : Number(brString));
-    const no_mic     = searchParams.get('mutemic') == "true";
 
     const [Platform,setPlatform] = useState<Platform>(null);
 
@@ -135,7 +136,6 @@ export default function Home () {
         }
         
         const core = new SbCore()
-
         const result = await core.AuthenticateSession(ref,user_ref)
         if (result instanceof Error) {
             return Swal.fire({
@@ -244,6 +244,8 @@ export default function Home () {
                 source == "audio" ? setAudioConnectivity("connected") : setVideoConnectivity("connected")
             if (message == ConnectionEvent.WebRTCConnectionChecking) 
                 source == "audio" ? setAudioConnectivity("connecting") : setVideoConnectivity("connecting")
+            if (message == ConnectionEvent.WebRTCConnectionDoneChecking && source == "video"  && low_bitrate) 
+                client.ChangeBitrate(1000)
 
             if (message == ConnectionEvent.ApplicationStarted) {
                 await TurnOnConfirm(message,text)
@@ -334,6 +336,7 @@ export default function Home () {
                 muted
                 playsInline
                 loop
+                id='videoElm'
             ></RemoteVideo>
             <WebRTCControl 
                 platform={Platform} 
@@ -398,6 +401,7 @@ const RemoteVideo = styled.video`
 `;
 const Body = styled.div`
     position: relative;
+    touch-action: none;
     width: 100vw;
     height: 100vh;
     padding: 0;

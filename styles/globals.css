@@ -109,3 +109,7 @@ a {
         border-radius: 60px !important;
     }
 }
+
+.fillVideoIos{
+    object-fit: fill !important;
+}
