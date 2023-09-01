@@ -18,7 +18,7 @@ export async function TurnOnAlert(error: string): Promise<void> {
 
     have_swal = 'popup';
     Swal.fire({
-        title: "Opps...",
+        title: "Oops...",
         text: error,
         icon: "error",
         confirmButtonText: "OK",
