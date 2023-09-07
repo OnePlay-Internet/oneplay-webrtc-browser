@@ -20,6 +20,7 @@ import {
 } from "../core/utils/log";
 import { WebRTCControl } from "../components/control/control";
 import {
+    getBrowser,
 	getPlatform,
 	Platform,
 } from "../core/utils/platform";
@@ -36,61 +37,131 @@ import { AudioMetrics, NetworkMetrics, VideoMetrics } from "../core/qos/models";
 import { VideoWrapper } from "../core/pipeline/sink/video/wrapper";
 import { AudioWrapper } from "../core/pipeline/sink/audio/wrapper";
 
-const reset_interval = 7 * 1000
+
+type StatsView = {
+    index                             : number
+    receivefps                        : number
+    decodefps                         : number
+    packetloss                        : number     
+    bandwidth                         : number     
+    buffer                            : number
+}
+
 let client : RemoteDesktopClient = null
 let callback       : () => Promise<void> = async () => {};
 let fetch_callback : () => Promise<WorkerStatus[]> = async () => {return[]};
 let video : VideoWrapper = null
 let audio : AudioWrapper = null
+let clipboard : string  = ""
+let pointer   : boolean = false
+
+
 
 type ConnectStatus = 'not started' | 'started' | 'connecting' | 'connected' | 'closed'
-export default function Home () {
-    const [connectionPath,setConnectionPath] = useState<any[]>([]);
+export default function Home () {    
+    let ref_local        = ''
+    if (typeof window !== 'undefined')
+        ref_local        = localStorage.getItem("reference")
+
+
+    const searchParams = useSearchParams();
+    const brString     = searchParams.get('bitrate');
+    const user_ref     = searchParams.get('uref') ?? undefined
+    const ref          = searchParams.get('ref')  ?? ref_local 
+    const Platform     = searchParams.get('platform'); 
+    const turn         = searchParams.get('turn') == "true";
+    const no_video     = searchParams.get('no_video') == "true";
+    const low_bitrate  = searchParams.get('low_bitrate') == "true";
+    const no_mic       = searchParams.get('mutemic') == "true";
+    const no_hid       = searchParams.get('viewonly') == "true";
+    const no_stretch   = searchParams.get('no_stretch') == 'true'
+    const view_pointer = searchParams.get('pointer') == 'visible'
+
+
+    const [bitrate, setBitrate]                    = useState((Number(brString) || 10000) > 10000 ? 10000 : Number(brString));
+    const [connectionPath,setConnectionPath]       = useState<any[]>([]);
     const [videoConnectivity,setVideoConnectivity] = useState<ConnectStatus>('not started');
     const [audioConnectivity,setAudioConnectivity] = useState<ConnectStatus>('not started');
-    const got_stuck = () => { 
-        return (['started','closed'].includes(videoConnectivity)  && audioConnectivity == 'connected') || 
-               (['started','closed'].includes(audioConnectivity)  && videoConnectivity == 'connected')
-    }
-    const [metrics,setMetrics] = useState<{
-        index                             : number
-        receivefps                        : number
-        decodefps                         : number
-        packetloss                        : number     
-        bandwidth                         : number     
-        buffer                            : number
-    }[]>([])
+    const [metrics,setMetrics]                     = useState<StatsView[]>([])
+    const remoteVideo                              = useRef<HTMLVideoElement>(null);
+    const remoteAudio                              = useRef<HTMLAudioElement>(null);
+
+    const [platform,setPlatform] = useState<Platform>(null);
+ 	const [isModalOpen, setModalOpen] = useState(false)
+	const checkHorizontal = (width: number,height:number) => {
+        if (platform == 'mobile') 
+            setModalOpen(width < height)
+	}    
+    useEffect(() => {
+		checkHorizontal(window.innerWidth,window.innerHeight)
+        window.addEventListener('resize', (e: UIEvent) => {
+            checkHorizontal(window.innerWidth, window.innerHeight)
+		})
+
+		return () => { 
+            window.removeEventListener('resize', (e: UIEvent) => { 
+                checkHorizontal(window.innerWidth, window.innerHeight)
+            })
+		}
+    }, [platform]);
+
+
+
+
+
     useEffect(()=>{
         window.onbeforeunload = (e: BeforeUnloadEvent) => {
+            client?.hid?.ResetKeyStuck()
+            client?.Close()
+
+            localStorage.setItem('signaling','{}')
+            localStorage.setItem('webrtc'   ,'{}')
             const text = 'Are you sure (｡◕‿‿◕｡)'
-            client.hid.ResetKeyStuck()
             e = e || window.event;
             if (e)
                 e.returnValue = text
             return text;
         };
+
+
+        const handleState = () => {
+            navigator.clipboard.readText()
+            .then(_clipboard => {
+                if (_clipboard == clipboard) 
+                    return
+                    
+                client?.hid?.SetClipboard(_clipboard)
+                clipboard = _clipboard
+            })
+            .catch(() => { // not in focus zone
+                client?.hid?.ResetKeyStuck()
+            })
+
+            const fullscreen = document.fullscreenElement != null
+            const havingPtrLock = document.pointerLockElement != null
+
+            // remoteVideo.current.style.cursor = 'none'
+            remoteVideo.current.style.objectFit = 
+                !  fullscreen 
+                ?  "contain"
+                :  no_stretch 
+                ?  "contain"
+                :  "fill"
+
+            if (pointer != fullscreen) {
+                client?.PointerVisible(view_pointer ? true : fullscreen)
+                pointer = fullscreen
+            }
+
+            if ((fullscreen && !havingPtrLock ) && getBrowser() != 'Safari')
+                remoteVideo.current.requestPointerLock();
+            else if ((!fullscreen && havingPtrLock) && getBrowser() != 'Safari') 
+                document.exitPointerLock();
+        }
+
+        const UIStateLoop = setInterval(handleState,100)
+        return () => { clearInterval(UIStateLoop) }
     },[])
-    const remoteVideo = useRef<HTMLVideoElement>(null);
-    const remoteAudio = useRef<HTMLAudioElement>(null);
-
-    let ref_local        = ''
-    if (typeof window !== 'undefined') {
-        ref_local        = localStorage.getItem("reference")
-    }
-
-    const searchParams = useSearchParams();
-    const user_ref   = searchParams.get('uref') ?? undefined
-    const ref        = searchParams.get('ref')  ?? ref_local 
-    const platform   = searchParams.get('platform'); 
-    const brString   = searchParams.get('bitrate');
-    const turn       = searchParams.get('turn') == "true";
-    const no_video   = searchParams.get('phonepad') == "true";
-    const low_bitrate  = searchParams.get('low_bitrate') == "true";
-    const no_mic     = searchParams.get('mutemic') == "true";
-    
-    const [bitrate, setBitrate] = useState((Number(brString) || 10000) > 10000 ? 10000 : Number(brString));
-
-    const [Platform,setPlatform] = useState<Platform>(null);
 
     const redirectToLogin = () => {
         location.href =
@@ -100,21 +171,47 @@ export default function Home () {
     };
 
     useEffect(()=>{
-        const interval = setInterval(async () => {
-            if (got_stuck()) {
-                setTimeout(() => {
-                    if (got_stuck()) 
-                        client?.HardReset()                    
-                },reset_interval) // hard reset afeter 10 sec
-            } else if (videoConnectivity == 'connected')
-                await callback()
-            else
-                console.log(`video is not connected, avoid ping`)
-        }, 14 * 1000)
-        return () =>{ clearInterval(interval) }
-    }, [videoConnectivity])
+        const got_stuck_one = () => { 
+            return (['started','closed'].includes(videoConnectivity)  && audioConnectivity == 'connected') || 
+                   (['started','closed'].includes(audioConnectivity)  && videoConnectivity == 'connected')
+        }
+        const got_stuck_both = () => { 
+            return (['started','closed'].includes(videoConnectivity)  && 
+                    ['started','closed'].includes(audioConnectivity))
+        }
+
+        const check_connection = () => {
+            if (got_stuck_one()) {
+                client?.HardReset()                    
+                SetupWebRTC()
+            } else if (got_stuck_both()) {
+                client?.HardReset()                    
+            }
+        }
+
+        if (got_stuck_one() || got_stuck_both()) {
+            console.log('stuck condition happended, retry after 5s')
+            const interval = setTimeout(check_connection,5 * 1000)
+            return () =>{ clearTimeout(interval) }
+        } else if (videoConnectivity == 'connected') {
+            const interval = setInterval(callback,14 * 1000)
+            return () =>{ clearInterval(interval) }
+        }
+    }, [videoConnectivity,audioConnectivity])
 
     const SetupConnection = async () => {
+        if (videoConnectivity != 'not started' && audioConnectivity != 'not started')
+            return
+
+        localStorage.setItem("reference",ref)
+
+        if(!ref || !user_ref) {
+            return Swal.fire({
+                icon: "error",
+                title: "Invalid Link"
+            }).then(() => location.href = config.app_domain);
+        }
+
         const sessionToken = Cookies.get("op_session_token");
 
         if (!sessionToken) {
@@ -124,16 +221,6 @@ export default function Home () {
         const api = new RendermixApi();
 
         const { user_id, username, first_name } = await api.getProfile();
-
-        localStorage.setItem("reference",ref)
-            
-        
-        if(!ref || !user_ref) {
-            return Swal.fire({
-                icon: "error",
-                title: "Invalid Link"
-            }).then(() => location.href = config.app_domain);
-        }
         
         const core = new SbCore()
         const result = await core.AuthenticateSession(ref,user_ref)
@@ -177,14 +264,26 @@ export default function Home () {
             ConnectionEvent.ApplicationStarted,
             `Hi ${username || first_name}, game is ready to start!`
         )
-        client = new RemoteDesktopClient(
-            SignalingConfig,
-            {...WebRTCConfig,iceTransportPolicy: turn ? "relay" : "all"},
-            video, 
-            audio,   
-            Platform,
-            no_video,
-            no_mic
+
+
+        localStorage.setItem("signaling",JSON.stringify(SignalingConfig))
+        localStorage.setItem("webrtc",JSON.stringify(WebRTCConfig))
+    }
+
+
+    const SetupWebRTC = () => {
+        if (client != null) 
+            client.Close()
+            
+        client = new RemoteDesktopClient( video, audio,   
+            JSON.parse(localStorage.getItem('signaling')),
+            JSON.parse(localStorage.getItem('webrtc')), {
+                turn,
+                platform,
+                no_video,
+                no_mic,
+                no_hid
+            }
         )
 
         client.ChangeBitrate(bitrate);
@@ -221,19 +320,6 @@ export default function Home () {
                     return old
                 })
         }
-
-        setInterval(async () => { // TODO
-            const result = await fetch_callback()
-            const data = result.at(0)
-
-            if(data == undefined) {
-                await TurnOnAlert('worker session terminated')
-                return
-            }
-
-            if(!data.is_ping_worker_account)
-                await TurnOnAlert('worker terminated')
-        },30 * 1000)
     }
 
     useEffect(() => {
@@ -257,38 +343,29 @@ export default function Home () {
        })
 
         setPlatform(old => { 
-           if (platform == null) 
+           if (Platform == null) 
                return getPlatform() 
            else 
-               return platform as Platform
-       })
+               return Platform as Platform
+        })
 
         video = new VideoWrapper(remoteVideo.current)
         audio = new AudioWrapper(remoteAudio.current)
-        SetupConnection().catch(error => {
-           TurnOnAlert(error);
-       })
+        SetupConnection() 
+            .catch(TurnOnAlert)
+            .then(async () => {
+                SetupWebRTC()
+                setInterval(async () => { // TODO
+                    const result = await fetch_callback()
+                    const data = result.at(0)
+
+                    if(data == undefined) 
+                        return
+                    else if(!data.is_ping_worker_account)
+                        await TurnOnAlert('worker terminated')
+                },30 * 1000)
+            })
     }, []);
-
-    const [isModalOpen, setModalOpen] = useState(false)
-    const checkHorizontal = (width: number,height:number) => {
-       if (Platform == 'mobile') 
-           setModalOpen(width < height)
-    }
-
-    useEffect(() => {
-        checkHorizontal(window.innerWidth,window.innerHeight)
-        window.addEventListener('resize', (e: UIEvent) => {
-            checkHorizontal(window.innerWidth, window.innerHeight)
-		})
-
-		return () => { 
-            window.removeEventListener('resize', (e: UIEvent) => { 
-                checkHorizontal(window.innerWidth, window.innerHeight)
-		    })
-		}
-    }, [Platform]);
-
 
     const toggleMouseTouchCallback=async function(enable: boolean) { 
         client?.hid?.DisableTouch(!enable);
@@ -321,9 +398,8 @@ export default function Home () {
         client?.hid?.PasteClipboard()
     }
     const audioCallback = async() => {
-        client?.ResetAudio()
-        await video.play() 
-        await audio.play() 
+        // client?.ResetAudio()
+        SetupWebRTC()
     }
 
 
@@ -336,10 +412,9 @@ export default function Home () {
                 muted
                 playsInline
                 loop
-                id='videoElm'
             ></RemoteVideo>
             <WebRTCControl 
-                platform={Platform} 
+                platform={platform} 
                 toggle_mouse_touch_callback={toggleMouseTouchCallback}
                 bitrate_callback={bitrateCallback}
                 GamepadACallback={GamepadACallback}
@@ -349,6 +424,7 @@ export default function Home () {
                 keystuckCallback={keystuckCallback}
                 audioCallback={audioCallback}
                 clipboardSetCallback={clipboardSetCallback}
+                video={remoteVideo.current}
             ></WebRTCControl>
             <audio
                 ref={remoteAudio}
@@ -378,7 +454,7 @@ export default function Home () {
                 bandwidth={metrics.map(x => { return {key: x.index, value: x.bandwidth} })}
                 buffer={metrics.map(x => { return {key: x.index, value: x.buffer} })}
                 bitrate={bitrate}
-                platform={Platform}
+                platform={platform}
             />
         </Body>
     );
