@@ -1,6 +1,5 @@
 import { IconButton, Modal, Slider, ThemeProvider, createTheme } from '@mui/material'
 import React, { startTransition, useLayoutEffect } from 'react'
-import { Joystick } from 'react-joystick-component'
 import styled from 'styled-components'
 import CloseIcon from '@mui/icons-material/Close';
 import { useSetting } from '../../context/settingProvider';
@@ -69,6 +68,14 @@ function Setting(props: Props) {
 	}, {
 		name: 'LB & LT',
 		key: 'lbLt',
+		value: 50
+	}, {
+		name: 'RS',
+		key: 'rs',
+		value: 50
+	}, {
+		name: 'LS',
+		key: 'ls',
 		value: 50
 	}])
 	const { isOpen, closeModal, onDraggable } = props
