@@ -75,10 +75,6 @@ const ButtonIcon = styled.button`
 	width: 45px;
 	height: 100%;
 	font-weight: 500;
-	:active{
-		background: black;
-		color: white;
-	}
 `
 interface Action {
 	icon: React.ReactNode,
@@ -86,19 +82,21 @@ interface Action {
 	action: () => void,
 }
 interface Props {
-	isOpen: boolean,
-	handleOpen: () => void,
+	isClose: boolean
+	handleOpen: () => void
+
 	actions: Action[],
 	isShowBtn: boolean
+
 	onOkey: () => Promise<void>
 	onDefault: () => Promise<void>
+
+
 }
 
-function MobileControl(props: Props) {
-	const { actions, isShowBtn, onOkey, onDefault, isOpen, handleOpen } = props
-	
+function MobileControl({ isClose, handleOpen, actions, isShowBtn, onOkey, onDefault }: Props) {
 	return (
-		<Container className={isOpen ? 'slide-out' : 'slide-in'}>
+		<Container className={!isClose ? 'slide-out' : 'slide-in'}>
 
 			<WrapperContent >
 				{
@@ -118,7 +116,7 @@ function MobileControl(props: Props) {
 			</WrapperContent>
 			<Button onClick={handleOpen}>
 				{
-					isOpen 
+					!isClose 
 					? <IoIosArrowForward color="white" style={{fontSize:20}}/> 
 					: <IoIosArrowBack color="white"    style={{fontSize:20}} />
 				}

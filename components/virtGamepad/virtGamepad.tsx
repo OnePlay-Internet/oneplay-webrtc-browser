@@ -2,11 +2,6 @@
 import React, { useRef, useState, useEffect, useLayoutEffect, useTransition, useContext } from "react"; // we need this to make JSX compile
 import Draggable, { DraggableData, DraggableEvent } from "react-draggable";
 import styled from "styled-components";
-import {
-    IJoystickUpdateEvent,
-    Joystick,
-} from "react-joystick-component/build/lib/Joystick";
-
 import { ButtonMode, ConTrolContext } from "../control/control";
 import { YBXA } from "./gamepad/y_b_x_a";
 import DPad from "./gamepad/d_pad";
@@ -17,7 +12,6 @@ import ArrowRightIcon from '@mui/icons-material/ArrowRight';
 import SportsEsportsOutlinedIcon from '@mui/icons-material/SportsEsportsOutlined';
 
 const BUTTON_SIZE = 50
-const JOYSTICK_SIZE = 100
 
 export const VirtualGamepad = (props: {
     toggle: () => void;
@@ -58,45 +52,6 @@ export const VirtualGamepad = (props: {
     );
 };
 
-export const JoyStick = (param: {
-    draggable: ButtonMode;
-    moveCallback: (x: number, y: number) => Promise<void>;
-    className: string;
-    size: number,
-}) => {
-
-    const { draggable, moveCallback, className, size = 100 } = param
-    const [enableJT, setenableJT] = useState<boolean>(false);
-
-    const move = (event: IJoystickUpdateEvent) => {
-        if (event.type == "move") {
-            if (!enableJT) {
-                moveCallback(0, 0);
-                return;
-            }
-            moveCallback(event.x, -event.y);
-        } else if (event.type == "stop") {
-            setenableJT(false);
-            moveCallback(0, 0);
-        } else if (event.type == "start") {
-            setenableJT(true);
-        }
-    };
-
-    return (
-        <WrapperJoyStick className={className}>
-            <Joystick
-                start={move}
-                stop={move}
-                move={move}
-                size={size}
-                baseColor="rgba(0, 0, 0, 0.1)"
-                stickColor="rgba(255, 255, 255, 0.52"
-                disabled={draggable === 'draggable'}
-            />
-        </WrapperJoyStick>
-    );
-};
 interface Coordinates {
     x: number;
     y: number
@@ -121,7 +76,7 @@ const defaultButtonGroupRightValue = {
 export const ButtonGroupRight = (props: ButtonGroupProps & {toggle: () => void}) => {
     const { settingValue } = useSetting()
     const [isPending, startTransition] = useTransition()
-    const { isSetVGamePadDefaultValue } = useContext(ConTrolContext);
+    const { DefaultPosition } = useContext(ConTrolContext);
 
 
     const {
@@ -191,20 +146,32 @@ export const ButtonGroupRight = (props: ButtonGroupProps & {toggle: () => void})
 
     //reset default value
     useEffect(() => {
-        if (isSetVGamePadDefaultValue === true) {
-            const deviceWidth = window.innerWidth
-            const deviceHeight = window.innerHeight
-            const defaultPos = {
-                ybxa: { x: deviceWidth * defaultButtonGroupRightValue.ybxa.x, y: deviceHeight * defaultButtonGroupRightValue.ybxa.y },
-                joystick: { x: deviceWidth * defaultButtonGroupRightValue.joystick.x, y: deviceHeight * defaultButtonGroupRightValue.joystick.y },
-                funcBtn: { x: deviceWidth * defaultButtonGroupRightValue.funcBtn.x, y: deviceHeight * defaultButtonGroupRightValue.funcBtn.y },
-                subBtn: { x: deviceWidth * defaultButtonGroupRightValue.subBtn.x, y: deviceHeight * defaultButtonGroupRightValue.subBtn.y },
-            }
-            setPosBtn(defaultPos)
-            localStorage.setItem(`right_group_pos1`, JSON.stringify(defaultPos));
+        if (!DefaultPosition) 
+            return
 
+        const deviceWidth = window.innerWidth
+        const deviceHeight = window.innerHeight
+        const defaultPos = {
+            ybxa        : { 
+                x: deviceWidth * defaultButtonGroupRightValue.ybxa.x, 
+                y: deviceHeight * defaultButtonGroupRightValue.ybxa.y 
+            },
+            joystick    : { 
+                x: deviceWidth * defaultButtonGroupRightValue.joystick.x, 
+                y: deviceHeight * defaultButtonGroupRightValue.joystick.y 
+            },
+            funcBtn     : { 
+                x: deviceWidth * defaultButtonGroupRightValue.funcBtn.x, 
+                y: deviceHeight * defaultButtonGroupRightValue.funcBtn.y 
+            },
+            subBtn      : { 
+                x: deviceWidth * defaultButtonGroupRightValue.subBtn.x, 
+                y: deviceHeight * defaultButtonGroupRightValue.subBtn.y 
+            },
         }
-    }, [isSetVGamePadDefaultValue])
+        setPosBtn(defaultPos)
+        localStorage.setItem(`right_group_pos1`, JSON.stringify(defaultPos));
+    }, [DefaultPosition])
     return (
         <>
             <Draggable
@@ -263,22 +230,6 @@ export const ButtonGroupRight = (props: ButtonGroupProps & {toggle: () => void})
             </Draggable>
             <Draggable
                 disabled={props.draggable != "draggable"}
-                position={{ x: posBtn?.joystick?.x, y: posBtn?.joystick?.y }}
-                onStop={handleStop}
-                onDrag={handleDrag}
-            >
-                <WrapperDraggable id="joystick">
-                    <JoyStickRight
-                        moveCallback={(x: number, y: number) =>
-                            props.AxisCallback(x, y, "right")
-                        }
-                        draggable={props.draggable}
-                        size={JOYSTICK_SIZE * rightJt}
-                    />
-                </WrapperDraggable>
-            </Draggable>
-            <Draggable
-                disabled={props.draggable != "draggable"}
                 position={{ x: posBtn?.rs?.x, y: posBtn?.rs?.y }}
                 onStop={handleStop}
                 onDrag={handleDrag}
@@ -300,9 +251,6 @@ const Rs = styled.button`
      /* depened on Container */
     width: ${props => props.size + 'px'};
     height: ${props => props.size + 'px'};
-    :active {
-        background-color: rgb(97 76 76 / 15%);;
-    }
     color: #C3B5B5;
     border: 1px solid currentColor;
     border-radius: 50%;
@@ -316,9 +264,6 @@ const Rs = styled.button`
 const Ls = styled.button`
     width: ${props => props.size + 'px'};
     height: ${props => props.size + 'px'};
-    :active {
-        background-color: rgb(97 76 76 / 15%);;
-    }
     color: #C3B5B5;
     border: 1px solid currentColor;
     border-radius: 50%;
@@ -338,7 +283,7 @@ const defaultButtonGroupLeftValue = {
 export const ButtonGroupLeft = (props: ButtonGroupProps) => {
     const { settingValue } = useSetting()
     const [isPending, startTransition] = useTransition()
-    const { isSetVGamePadDefaultValue } = useContext(ConTrolContext);
+    const { DefaultPosition } = useContext(ConTrolContext);
 
     const {
         leftJt,
@@ -403,20 +348,32 @@ export const ButtonGroupLeft = (props: ButtonGroupProps) => {
 
     //reset default value
     useEffect(() => {
-        if (isSetVGamePadDefaultValue === true) {
-            const deviceWidth = window.innerWidth
-            const deviceHeight = window.innerHeight
-            const defaultPos = {
-                dpad: { x: deviceWidth * defaultButtonGroupLeftValue.dpad.x, y: deviceHeight * defaultButtonGroupLeftValue.dpad.y },
-                joystick: { x: deviceWidth * defaultButtonGroupLeftValue.joystick.x, y: deviceHeight * defaultButtonGroupLeftValue.joystick.y },
-                funcBtn: { x: deviceWidth * defaultButtonGroupLeftValue.funcBtn.x, y: deviceHeight * defaultButtonGroupLeftValue.funcBtn.y },
-                ls: { x: deviceWidth * defaultButtonGroupLeftValue.ls.x, y: deviceHeight * defaultButtonGroupLeftValue.ls.y },
-            }
-            setPosBtn(defaultPos)
-            localStorage.setItem(`left_group_pos1`, JSON.stringify(defaultPos));
+        if (!DefaultPosition) 
+            return
 
+        const deviceWidth = window.innerWidth
+        const deviceHeight = window.innerHeight
+        const defaultPos = {
+            dpad: { 
+                x: deviceWidth * defaultButtonGroupLeftValue.dpad.x, 
+                y: deviceHeight * defaultButtonGroupLeftValue.dpad.y 
+            },
+            joystick: { 
+                x: deviceWidth * defaultButtonGroupLeftValue.joystick.x, 
+                y: deviceHeight * defaultButtonGroupLeftValue.joystick.y 
+            },
+            funcBtn: { 
+                x: deviceWidth * defaultButtonGroupLeftValue.funcBtn.x, 
+                y: deviceHeight * defaultButtonGroupLeftValue.funcBtn.y 
+            },
+            ls: { 
+                x: deviceWidth * defaultButtonGroupLeftValue.ls.x, 
+                y: deviceHeight * defaultButtonGroupLeftValue.ls.y 
+            },
         }
-    }, [isSetVGamePadDefaultValue])
+        setPosBtn(defaultPos)
+        localStorage.setItem(`left_group_pos1`, JSON.stringify(defaultPos));
+    }, [DefaultPosition])
     return (
         <>
             <Draggable
@@ -449,25 +406,6 @@ export const ButtonGroupLeft = (props: ButtonGroupProps) => {
                         }}
                     />
 
-                </WrapperDraggable>
-            </Draggable>
-            <Draggable
-                disabled={props.draggable != "draggable"}
-                position={{ x: posBtn?.joystick?.x, y: posBtn?.joystick?.y }}
-                onStop={handleStop}
-                onDrag={handleDrag}
-            >
-                <WrapperDraggable
-                    id="joystick"
-                >
-                    <JoyStickLeft
-                        moveCallback={async (x: number, y: number) => {
-                            props.AxisCallback(x, y, "left");
-                            return;
-                        }}
-                        draggable={props.draggable}
-                        size={JOYSTICK_SIZE * leftJt}
-                    />
                 </WrapperDraggable>
             </Draggable>
             <Draggable
@@ -528,9 +466,6 @@ const CssDefaultCenterBtn = styled.button`
     display: flex;
     align-items: center;
     justify-content: center;
-    :active {
-        background-color: rgb(97 76 76 / 15%);;
-    }
 `;
 const SelectBtn = styled(CssDefaultCenterBtn)`
     /*position: absolute;
@@ -543,19 +478,6 @@ const StartBtn = styled(CssDefaultCenterBtn)`
     left: 10px;*/
 `;
 const PowerBtn = styled(CssDefaultCenterBtn)``;
-
-const JoyStickRight = styled(JoyStick)`
-    /*position: absolute;
-    opacity: 0.3;
-    bottom: 10%;
-    right: 50%;*/
-`;
-const JoyStickLeft = styled(JoyStick)`
-    /*position: absolute;
-    opacity: 0.3;
-    top: 50%;
-    right: 50%;*/
-`;
 
 const ContainerSubButton = styled.div`
     display: flex;

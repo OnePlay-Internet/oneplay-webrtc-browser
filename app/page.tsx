@@ -10,7 +10,7 @@ import {
     TurnOnStatus,
 } from "../components/popup/popup";
 import { Metrics, RemoteDesktopClient } from "../core/app";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
     AddNotifier,
     ConnectionEvent,
@@ -21,7 +21,9 @@ import {
 import { WebRTCControl } from "../components/control/control";
 import {
     getBrowser,
+	getOS,
 	getPlatform,
+	getResolution,
 	Platform,
 } from "../core/utils/platform";
 import SbCore, { WorkerStatus } from "../supabase";
@@ -36,6 +38,9 @@ import Metric  from "../components/metric/metric";
 import { AudioMetrics, NetworkMetrics, VideoMetrics } from "../core/qos/models";
 import { VideoWrapper } from "../core/pipeline/sink/video/wrapper";
 import { AudioWrapper } from "../core/pipeline/sink/audio/wrapper";
+import { formatError } from "../utils/formatError";
+import { EventCode } from "../core/models/keys.model";
+import QRCode from "react-qr-code";
 
 
 type StatsView = {
@@ -47,6 +52,8 @@ type StatsView = {
     buffer                            : number
 }
 
+const REDIRECT_PAGE = "https://app.thinkmay.net/"
+const THIS_PAGE     = "https://remote.thinkmay.net"
 let client : RemoteDesktopClient = null
 let callback       : () => Promise<void> = async () => {};
 let fetch_callback : () => Promise<WorkerStatus[]> = async () => {return[]};
@@ -76,7 +83,7 @@ export default function Home () {
     const no_hid       = searchParams.get('viewonly') == "true";
     const no_stretch   = searchParams.get('no_stretch') == 'true'
     const view_pointer = searchParams.get('pointer') == 'visible'
-
+    const show_gamepad = searchParams.get('show_gamepad') == 'true'
 
     const [bitrate, setBitrate]                    = useState((Number(brString) || 10000) > 10000 ? 10000 : Number(brString));
     const [connectionPath,setConnectionPath]       = useState<any[]>([]);
@@ -86,11 +93,15 @@ export default function Home () {
     const remoteVideo                              = useRef<HTMLVideoElement>(null);
     const remoteAudio                              = useRef<HTMLAudioElement>(null);
 
-    const [platform,setPlatform] = useState<Platform>(null);
- 	const [isModalOpen, setModalOpen] = useState(false)
+    const [platform,setPlatform]                   = useState<Platform>(null);
+    const [IOSFullscreen,setIOSFullscreen]         = useState<boolean>(false);
+ 	const [showQR, setQRShow]                      = useState<string|null>(null)
+ 	const [warningRotate, setWarning]              = useState(false)
+    const router = useRouter();
+
 	const checkHorizontal = (width: number,height:number) => {
         if (platform == 'mobile') 
-            setModalOpen(width < height)
+            setWarning(width < height)
 	}    
     useEffect(() => {
 		checkHorizontal(window.innerWidth,window.innerHeight)
@@ -104,6 +115,12 @@ export default function Home () {
             })
 		}
     }, [platform]);
+    useEffect(() => {
+        remoteVideo.current.style.objectFit = 
+            IOSFullscreen
+            ?  "fill"
+            :  "contain"
+    }, [IOSFullscreen]);
 
 
 
@@ -137,6 +154,9 @@ export default function Home () {
                 client?.hid?.ResetKeyStuck()
             })
 
+            if(getOS() == 'iOS' || getBrowser() == 'Safari') 
+                return 
+            
             const fullscreen = document.fullscreenElement != null
             const havingPtrLock = document.pointerLockElement != null
 
@@ -154,7 +174,7 @@ export default function Home () {
             }
 
             if ((fullscreen && !havingPtrLock ) && getBrowser() != 'Safari')
-                remoteVideo.current.requestPointerLock();
+                try {remoteVideo.current.requestPointerLock()}catch(e){}
             else if ((!fullscreen && havingPtrLock) && getBrowser() != 'Safari') 
                 document.exitPointerLock();
         }
@@ -172,8 +192,9 @@ export default function Home () {
 
     useEffect(()=>{
         const got_stuck_one = () => { 
-            return (['started','closed'].includes(videoConnectivity)  && audioConnectivity == 'connected') || 
-                   (['started','closed'].includes(audioConnectivity)  && videoConnectivity == 'connected')
+            return((['started','closed'].includes(videoConnectivity)  && audioConnectivity == 'connected') || 
+                   (['started','closed'].includes(audioConnectivity)  && videoConnectivity == 'connected'))
+                   && !no_video
         }
         const got_stuck_both = () => { 
             return (['started','closed'].includes(videoConnectivity)  && 
@@ -181,20 +202,16 @@ export default function Home () {
         }
 
         const check_connection = () => {
-            if (got_stuck_one()) {
-                client?.HardReset()                    
+            if (got_stuck_one() || got_stuck_both()) 
                 SetupWebRTC()
-            } else if (got_stuck_both()) {
-                client?.HardReset()                    
-            }
         }
 
         if (got_stuck_one() || got_stuck_both()) {
             console.log('stuck condition happended, retry after 5s')
-            const interval = setTimeout(check_connection,5 * 1000)
+            const interval = setTimeout(check_connection, 7 * 1000)
             return () =>{ clearTimeout(interval) }
         } else if (videoConnectivity == 'connected') {
-            const interval = setInterval(callback,14 * 1000)
+            const interval = setInterval(callback, 12 * 1000)
             return () =>{ clearInterval(interval) }
         }
     }, [videoConnectivity,audioConnectivity])
@@ -223,7 +240,20 @@ export default function Home () {
         const { user_id, username, first_name } = await api.getProfile();
         
         const core = new SbCore()
-        const result = await core.AuthenticateSession(ref,user_ref)
+        const result = await core.AuthenticateSession(ref,user_ref,{
+            platform    : getOS(), 
+            browser     : getBrowser(),
+            resolution  : getResolution(),
+            turn, 
+            no_video, 
+            low_bitrate, 
+            no_mic, 
+            no_hid, 
+            no_stretch,
+            view_pointer, 
+            show_gamepad 
+        })
+
         if (result instanceof Error) {
             return Swal.fire({
                 icon: "error",
@@ -352,7 +382,10 @@ export default function Home () {
         video = new VideoWrapper(remoteVideo.current)
         audio = new AudioWrapper(remoteAudio.current)
         SetupConnection() 
-            .catch(TurnOnAlert)
+            .catch((err)=>{
+                TurnOnAlert(formatError((err as Error)?.message ?? ""))
+                setTimeout(() => router.push(REDIRECT_PAGE),5000)
+            })
             .then(async () => {
                 SetupWebRTC()
                 setInterval(async () => { // TODO
@@ -361,19 +394,23 @@ export default function Home () {
 
                     if(data == undefined) 
                         return
-                    else if(!data.is_ping_worker_account)
+                    else if(!data.is_ping_worker_account) {
                         await TurnOnAlert('worker terminated')
+                        setTimeout(() => router.push(REDIRECT_PAGE),5000)
+                    }
                 },30 * 1000)
             })
     }, []);
 
-    const toggleMouseTouchCallback=async function(enable: boolean) { 
-        client?.hid?.DisableTouch(!enable);
-        client?.hid?.DisableMouse(!enable);
+    const fullscreenCallback = async function () {
+        setIOSFullscreen(old => !old)
+    }
+    const touchModeCallback=async function(mode: 'trackpad' | 'gamepad' | 'mouse' | 'none') { 
+        client?.hid?.setTouchMode(mode)
     } 
     const bitrateCallback= async function (bitrate: number) { 
         client?.ChangeBitrate(bitrate);
-        client?.ChangeFramerate(55);
+        // client?.ChangeFramerate(55);
         setBitrate(bitrate);
     } 
     const GamepadACallback=async function(x: number, y: number, type: "left" | "right"): Promise<void> {
@@ -390,42 +427,45 @@ export default function Home () {
             ? client?.hid?.MouseButtonDown({button: index}) 
             : client?.hid?.MouseButtonUp({button: index})
     } 
-    const keystuckCallback= async function (): Promise<void> {
+    const resetConnection = async() => {
         client?.hid?.ResetKeyStuck();
-    }
-    const clipboardSetCallback= async function (val: string): Promise<void> {
-        client?.hid?.SetClipboard(val)
-        client?.hid?.PasteClipboard()
-    }
-    const audioCallback = async() => {
-        // client?.ResetAudio()
+        client?.HardReset()                    
         SetupWebRTC()
+    }
+    const keyboardCallback = async(val,action: "up" | "down") => {
+        client?.hid?.TriggerKey(action == "up" ? EventCode.KeyUp : EventCode.KeyDown,val)
+    }
+    const gamepadQR = async() => {
+        setQRShow(`${THIS_PAGE}/?ref=${localStorage.getItem("reference")}&no_video=true&show_gamepad=true&turn=${turn ? "true" : "false"}`)
+        setTimeout(() => setQRShow(null),10000)
     }
 
 
     return (
         <Body>
+            <WebRTCControl 
+                platform={platform} 
+                touch_mode_callback={touchModeCallback}
+                bitrate_callback={bitrateCallback}
+                gamepad_callback_a={GamepadACallback}
+                gamepad_callback_b={GamepadBCallback}
+                mouse_move_callback={MouseMoveCallback}
+                mouse_button_callback={MouseButtonCallback}
+                reset_callback={resetConnection}
+                fullscreen_callback={fullscreenCallback}
+                keyboard_callback={keyboardCallback}
+                gamepad_qr={gamepadQR}
+                show_gamepad={show_gamepad}
+                video={remoteVideo.current}
+            ></WebRTCControl>
             <RemoteVideo
                 ref={remoteVideo}
-                src={platform == "desktop" ? video_desktop : video_desktop}
+                src={no_video ? null : video_desktop}
                 autoPlay
                 muted
                 playsInline
                 loop
             ></RemoteVideo>
-            <WebRTCControl 
-                platform={platform} 
-                toggle_mouse_touch_callback={toggleMouseTouchCallback}
-                bitrate_callback={bitrateCallback}
-                GamepadACallback={GamepadACallback}
-                GamepadBCallback={GamepadBCallback}
-                MouseMoveCallback={MouseMoveCallback}
-                MouseButtonCallback={MouseButtonCallback}
-                keystuckCallback={keystuckCallback}
-                audioCallback={audioCallback}
-                clipboardSetCallback={clipboardSetCallback}
-                video={remoteVideo.current}
-            ></WebRTCControl>
             <audio
                 ref={remoteAudio}
                 autoPlay={true}
@@ -435,26 +475,28 @@ export default function Home () {
                 loop={true}
                 style={{ zIndex: -5, opacity: 0 }}
             ></audio>
-			<Modal
-				open={isModalOpen}
-			>
-				<ContentModal
-				>
+			<Modal open={warningRotate} >
+				<ContentModal >
 					<IconHorizontalPhone />
 					<TextModal>Please rotate the phone horizontally!!</TextModal>
+				</ContentModal>
+			</Modal>
+			<Modal open={showQR != null} >
+				<ContentModal >
+                    <QRCode value={showQR ?? ""}></QRCode>
 				</ContentModal>
 			</Modal>
             <Metric
             	videoConnect={videoConnectivity}
 	            audioConnect={audioConnectivity}
-                path={connectionPath}
-                decodeFPS={metrics.map(x => { return {key: x.index, value: x.decodefps} })}
-                receiveFPS={metrics.map(x => { return {key: x.index, value: x.receivefps} })}
-                packetLoss={metrics.map(x => { return {key: x.index, value: x.packetloss} })}
-                bandwidth={metrics.map(x => { return {key: x.index, value: x.bandwidth} })}
-                buffer={metrics.map(x => { return {key: x.index, value: x.buffer} })}
-                bitrate={bitrate}
-                platform={platform}
+                decodeFPS   ={metrics.map(x => { return {key: x.index, value: x.decodefps} })}
+                receiveFPS  ={metrics.map(x => { return {key: x.index, value: x.receivefps} })}
+                packetLoss  ={metrics.map(x => { return {key: x.index, value: x.packetloss} })}
+                bandwidth   ={metrics.map(x => { return {key: x.index, value: x.bandwidth} })}
+                buffer      ={metrics.map(x => { return {key: x.index, value: x.buffer} })}
+                path        ={connectionPath}
+                platform    ={platform}
+                bitrate     ={bitrate}
             />
         </Body>
     );
