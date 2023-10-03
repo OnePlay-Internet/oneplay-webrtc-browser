@@ -84,6 +84,8 @@ export default function Home () {
     const no_stretch   = searchParams.get('no_stretch') == 'true'
     const view_pointer = searchParams.get('pointer') == 'visible'
     const show_gamepad = searchParams.get('show_gamepad') == 'true'
+    let   vm_password  = "unknown"
+    try { vm_password  = atob(searchParams.get('vm_password') ?? "dW5rbm93bg==") } catch { }
 
     const [bitrate, setBitrate]                    = useState((Number(brString) || 10000) > 10000 ? 10000 : Number(brString));
     const [connectionPath,setConnectionPath]       = useState<any[]>([]);
@@ -97,6 +99,8 @@ export default function Home () {
     const [IOSFullscreen,setIOSFullscreen]         = useState<boolean>(false);
  	const [showQR, setQRShow]                      = useState<string|null>(null)
  	const [warningRotate, setWarning]              = useState(false)
+    const shouldResetKey                           = useRef(true) 
+
     const router = useRouter();
 
 	const checkHorizontal = (width: number,height:number) => {
@@ -128,11 +132,6 @@ export default function Home () {
 
     useEffect(()=>{
         window.onbeforeunload = (e: BeforeUnloadEvent) => {
-            client?.hid?.ResetKeyStuck()
-            client?.Close()
-
-            localStorage.setItem('signaling','{}')
-            localStorage.setItem('webrtc'   ,'{}')
             const text = 'Are you sure (｡◕‿‿◕｡)'
             e = e || window.event;
             if (e)
@@ -144,6 +143,7 @@ export default function Home () {
         const handleState = () => {
             navigator.clipboard.readText()
             .then(_clipboard => {
+                shouldResetKey.current = true
                 if (_clipboard == clipboard) 
                     return
                     
@@ -151,7 +151,10 @@ export default function Home () {
                 clipboard = _clipboard
             })
             .catch(() => { // not in focus zone
-                client?.hid?.ResetKeyStuck()
+                if(shouldResetKey?.current == true)
+                    client?.hid?.ResetKeyStuck()
+
+                shouldResetKey.current = false
             })
 
             if(getOS() == 'iOS' || getBrowser() == 'Safari') 
@@ -180,7 +183,13 @@ export default function Home () {
         }
 
         const UIStateLoop = setInterval(handleState,100)
-        return () => { clearInterval(UIStateLoop) }
+        return () => { 
+            clearInterval(UIStateLoop) 
+            client?.hid?.ResetKeyStuck()
+            client?.Close()
+            localStorage.setItem('signaling','{}')
+            localStorage.setItem('webrtc'   ,'{}')
+        }
     },[])
 
     const redirectToLogin = () => {
@@ -433,6 +442,7 @@ export default function Home () {
         SetupWebRTC()
     }
     const keyboardCallback = async(val,action: "up" | "down") => {
+        console.log(val,action)
         client?.hid?.TriggerKey(action == "up" ? EventCode.KeyUp : EventCode.KeyDown,val)
     }
     const gamepadQR = async() => {
@@ -445,6 +455,7 @@ export default function Home () {
         <Body>
             <WebRTCControl 
                 platform={platform} 
+                vm_password={vm_password}
                 touch_mode_callback={touchModeCallback}
                 bitrate_callback={bitrateCallback}
                 gamepad_callback_a={GamepadACallback}

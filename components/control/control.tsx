@@ -13,7 +13,7 @@ import MobileControl from "./mobileControl";
 import SettingsIcon from '@mui/icons-material/Settings';
 import DesktopControl from "./desktopControl";
 import Setting from "../setting/setting";
-import { useShift } from "../../utils/formatChar";
+import { useShift } from "../../core/utils/convert";
 
 
 export type ButtonMode = "static" | "draggable" | "disable";
@@ -37,6 +37,7 @@ export const WebRTCControl = (input: {
 	fullscreen_callback				: () => Promise<void>,
 
 	show_gamepad					: boolean,
+	vm_password						: string,
 	platform						: Platform,
 	video							: HTMLVideoElement
 }) => {
@@ -98,13 +99,13 @@ export const WebRTCControl = (input: {
 				break;
 		}
 	}, [enableVGamepad])
-	useEffect(() => setenableVGamepad(input.show_gamepad ? "static" : "disable"),[])
+	useEffect(() => { setenableVGamepad(input.show_gamepad ? "static" : "disable") },[])
 
 	useEffect(() => {
 		if (input.platform == 'mobile')
-			setactions([button.reset,button.bitrate,button.vgamepad,button.setting,button.keyboard,button.fullscreen])
+			setactions([button.reset,button.bitrate,button.vgamepad,button.setting,button.keyboard,button.fullscreen,button.password])
 		else 
-			setactions([button.reset,button.bitrate,button.vgamepad,button.fullscreen])
+			setactions([button.reset,button.bitrate,button.vgamepad,button.fullscreen,button.password])
 
 	}, [input.platform])
 
@@ -151,6 +152,14 @@ export const WebRTCControl = (input: {
 
 						return !old
 					}) 
+				},
+			},
+		password : {
+				icon: <KeyboardIcon />,
+				name: "Paste Window password",
+				action: () => { 
+					setOldTextValue([])
+					setTextValue(input.vm_password.split(""))
 				},
 			},
 		fullscreen : {
