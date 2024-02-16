@@ -35,6 +35,7 @@ import Metric  from "../components/metric/metric";
 import { AudioMetrics, NetworkMetrics, VideoMetrics } from "../core/qos/models";
 import { VideoWrapper } from "../core/pipeline/sink/video/wrapper";
 import { AudioWrapper } from "../core/pipeline/sink/audio/wrapper";
+import { SignalingConfig } from "../core/signaling/config";
 
 let client : RemoteDesktopClient = null
 let callback       : () => Promise<void> = async () => {};
@@ -61,7 +62,7 @@ export default function Home () {
     }[]>([])
     useEffect(()=>{
         window.onbeforeunload = (e: BeforeUnloadEvent) => {
-            const text = 'Are you sure (｡◕‿‿◕｡)'
+            const text = 'Are you sure (??????)'
             client.hid.ResetKeyStuck()
             e = e || window.event;
             if (e)
@@ -104,8 +105,9 @@ export default function Home () {
                     if (got_stuck()) 
                         client?.HardReset()                    
                 }, 10 * 1000) // hard reset afeter 10 sec
-            } else if (videoConnectivity == 'connected')
-                await callback()
+            } 
+            // else if (videoConnectivity == 'connected')
+                // await callback()
             else
                 console.log(`video is not connected, avoid ping`)
         }, 14 * 1000)
@@ -113,76 +115,79 @@ export default function Home () {
     }, [videoConnectivity])
 
     const SetupConnection = async () => {
-        const sessionToken = Cookies.get("op_session_token");
+        // const sessionToken = Cookies.get("op_session_token");
 
-        if (!sessionToken) {
-            return redirectToLogin();
-        }
+        // if (!sessionToken) {
+        //     return redirectToLogin();
+        // }
 
-        const api = new RendermixApi();
+        // const api = new RendermixApi();
 
-        const { user_id, username, first_name } = await api.getProfile();
+        // const { user_id, username, first_name } = await api.getProfile();
 
-        localStorage.setItem("reference",ref)
+        // localStorage.setItem("reference",ref)
             
         
-        if(!ref || !user_ref) {
-            return Swal.fire({
-                icon: "error",
-                title: "Invalid Link"
-            }).then(() => location.href = config.app_domain);
-        }
+        // if(!ref || !user_ref) {
+        //     return Swal.fire({
+        //         icon: "error",
+        //         title: "Invalid Link"
+        //     }).then(() => location.href = config.app_domain);
+        // }
         
-        const core = new SbCore()
+        // const core = new SbCore()
 
-        const result = await core.AuthenticateSession(ref,user_ref)
-        if (result instanceof Error) {
-            return Swal.fire({
-                icon: "error",
-                title: "Invalid Link"
-            }).then(() => location.href = config.app_domain);
-        }
+        // const result = await core.AuthenticateSession(ref,user_ref)
+        // if (result instanceof Error) {
+        //     return Swal.fire({
+        //         icon: "error",
+        //         title: "Invalid Link"
+        //     }).then(() => location.href = config.app_domain);
+        // }
 
-        const {Email ,SignalingConfig ,WebRTCConfig,PingCallback,FetchCallback} = result
+        // const {Email ,SignalingConfig ,WebRTCConfig,PingCallback,FetchCallback} = result
 
-        callback = PingCallback
-        fetch_callback = FetchCallback
+        // callback = PingCallback
+        // fetch_callback = FetchCallback
 
-        const emailToCompare = (await generateSHA256(user_id)) + "@oneplay.in";
+        // const emailToCompare = (await generateSHA256(user_id)) + "@oneplay.in";
 
-        if (emailToCompare !== Email) {
-            return Swal.fire({
-                icon: "error",
-                title: "Invalid Link",
-                text: "Please login with different user",
-                confirmButtonText: "Login",
-                showCancelButton: true,
-            }).then((res) => {
-                if (res.isConfirmed) {
-                    Cookies.remove("op_session_token", {
-                        domain: config.cookie_domain,
-                        path: "/",
-                    });
-                    redirectToLogin();
-                } else {
-                    location.href = config.app_domain;
-                }
-            });
-        }
+        // if (emailToCompare !== Email) {
+        //     return Swal.fire({
+        //         icon: "error",
+        //         title: "Invalid Link",
+        //         text: "Please login with different user",
+        //         confirmButtonText: "Login",
+        //         showCancelButton: true,
+        //     }).then((res) => {
+        //         if (res.isConfirmed) {
+        //             Cookies.remove("op_session_token", {
+        //                 domain: config.cookie_domain,
+        //                 path: "/",
+        //             });
+        //             redirectToLogin();
+        //         } else {
+        //             location.href = config.app_domain;
+        //         }
+        //     });
+        // }
         
-        setInterval(PingCallback,14000)
+        // setInterval(PingCallback,14000)
 
-        await LogConnectionEvent(
-            ConnectionEvent.ApplicationStarted,
-            `Hi ${username || first_name}, game is ready to start!`
-        )
+        // await LogConnectionEvent(
+        //     ConnectionEvent.ApplicationStarted,
+        //     `Hi ${username || first_name}, game is ready to start!`
+        // )
+        const SignalingConfig: SignalingConfig = {audioURL:"",dataURL:"",videoURL:"ws://192.168.1.185:8000/client"};
+        const WebRTCConfig: RTCConfiguration = {iceServers:[]};
         client = new RemoteDesktopClient(
             SignalingConfig,
-            {...WebRTCConfig,iceTransportPolicy: turn ? "relay" : "all"},
+            {...WebRTCConfig,
+                iceTransportPolicy: turn ? "relay" : "all"},
             video, 
             audio,   
             Platform,
-            no_video,
+            false,
             no_mic
         )
 
@@ -211,18 +216,18 @@ export default function Home () {
         client.HandleMetricRaw = async (data: NetworkMetrics | VideoMetrics | AudioMetrics) => {
         }
 
-        setInterval(async () => { // TODO
-            const result = await fetch_callback()
-            const data = result.at(0)
+        // setInterval(async () => { // TODO
+        //     const result = await fetch_callback()
+        //     const data = result.at(0)
 
-            if(data == undefined) {
-                await TurnOnAlert('worker session terminated')
-                return
-            }
+        //     if(data == undefined) {
+        //         await TurnOnAlert('worker session terminated')
+        //         return
+        //     }
 
-            if(!data.is_ping_worker_account)
-                await TurnOnAlert('worker terminated')
-        },30 * 1000)
+        //     if(!data.is_ping_worker_account)
+        //         await TurnOnAlert('worker terminated')
+        // },30 * 1000)
     }
 
     useEffect(() => {
@@ -253,7 +258,7 @@ export default function Home () {
         video = new VideoWrapper(remoteVideo.current)
         audio = new AudioWrapper(remoteAudio.current)
         SetupConnection().catch(error => {
-           TurnOnAlert(error);
+        //    TurnOnAlert(error);
        })
     }, []);
 
