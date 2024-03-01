@@ -98,21 +98,21 @@ export default function Home () {
             encodeURIComponent(location.href);
     };
 
-    useEffect(()=>{
-        const interval = setInterval(async () => {
-            if (got_stuck()) {
-                setTimeout(() => {
-                    if (got_stuck()) 
-                        client?.HardReset()                    
-                }, 10 * 1000) // hard reset afeter 10 sec
-            } 
-            // else if (videoConnectivity == 'connected')
-                // await callback()
-            else
-                console.log(`video is not connected, avoid ping`)
-        }, 14 * 1000)
-        return () =>{ clearInterval(interval) }
-    }, [videoConnectivity])
+    // useEffect(()=>{
+    //     const interval = setInterval(async () => {
+    //         if (got_stuck()) {
+    //             setTimeout(() => {
+    //                 if (got_stuck()) 
+    //                     client?.HardReset()                    
+    //             }, 10 * 1000) // hard reset afeter 10 sec
+    //         } 
+    //         // else if (videoConnectivity == 'connected')
+    //             // await callback()
+    //         else
+    //             console.log(`video is not connected, avoid ping`)
+    //     }, 14 * 1000)
+    //     return () =>{ clearInterval(interval) }
+    // }, [videoConnectivity])
 
     const SetupConnection = async () => {
         // const sessionToken = Cookies.get("op_session_token");
@@ -178,7 +178,7 @@ export default function Home () {
         //     ConnectionEvent.ApplicationStarted,
         //     `Hi ${username || first_name}, game is ready to start!`
         // )
-        const SignalingConfig: SignalingConfig = {audioURL:"",dataURL:"",videoURL:"ws://192.168.1.185:8000/client"};
+        const SignalingConfig: SignalingConfig = {audioURL:"ws://192.168.1.162:8000/client",dataURL:"",videoURL:"ws://192.168.1.162:8000/client"};
         const WebRTCConfig: RTCConfiguration = {iceServers:[]};
         client = new RemoteDesktopClient(
             SignalingConfig,
@@ -325,9 +325,7 @@ export default function Home () {
                 ref={remoteVideo}
                 src={platform == "desktop" ? video_desktop : video_desktop}
                 autoPlay
-                muted
                 playsInline
-                loop
             ></RemoteVideo>
             <WebRTCControl 
                 platform={Platform} 
