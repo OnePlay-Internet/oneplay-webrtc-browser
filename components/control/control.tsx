@@ -27,7 +27,7 @@ export const ConTrolContext = createContext<IControlContext | null>(null)
 
 
 export const WebRTCControl = (input: {
-	GamepadACallback: (x: number, y: number, type: 'left' | 'right') => Promise<void>,
+GamepadACallback: (x: number, y: number, type: 'left' | 'right') => Promise<void>,
 	GamepadBCallback: (index: number, type: 'up' | 'down') => Promise<void>,
 	MouseMoveCallback: (x: number, y: number) => Promise<void>,
 	MouseButtonCallback: (index: number, type: 'up' | 'down') => Promise<void>,

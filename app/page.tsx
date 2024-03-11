@@ -36,6 +36,7 @@ import { AudioMetrics, NetworkMetrics, VideoMetrics } from "../core/qos/models";
 import { VideoWrapper } from "../core/pipeline/sink/video/wrapper";
 import { AudioWrapper } from "../core/pipeline/sink/audio/wrapper";
 import { SignalingConfig } from "../core/signaling/config";
+import GamepadManager  from "../core/hid/gamepad";
 
 let client : RemoteDesktopClient = null
 let callback       : () => Promise<void> = async () => {};
@@ -231,7 +232,7 @@ export default function Home () {
     }
 
     useEffect(() => {
-        AddNotifier(async (message: ConnectionEvent, text?: string, source?: string) => {
+                AddNotifier(async (message: ConnectionEvent, text?: string, source?: string) => {
             if (message == ConnectionEvent.WebRTCConnectionClosed) 
                 await source == "audio" ? setAudioConnectivity("closed") : setVideoConnectivity("closed")
             if (message == ConnectionEvent.WebRTCConnectionDoneChecking) 
@@ -265,7 +266,7 @@ export default function Home () {
     const [isModalOpen, setModalOpen] = useState(false)
     const checkHorizontal = (width: number,height:number) => {
        if (Platform == 'mobile') 
-           setModalOpen(width < height)
+           setModalOpen(false)
     }
 
     useEffect(() => {
@@ -290,13 +291,13 @@ export default function Home () {
         client?.ChangeBitrate(bitrate);
         client?.ChangeFramerate(55);
         setBitrate(bitrate);
-    } 
+} 
     const GamepadACallback=async function(x: number, y: number, type: "left" | "right"): Promise<void> {
         client?.hid?.VirtualGamepadAxis(x,y,type);
     } 
     const GamepadBCallback=async function(index: number, type: "up" | "down"): Promise<void> {
         client?.hid?.VirtualGamepadButtonSlider(type == 'down',index);
-    }  
+    } 
     const MouseMoveCallback=async function (x: number, y: number): Promise<void> {
         client?.hid?.mouseMoveRel({movementX:x,movementY:y});
     } 
@@ -318,7 +319,38 @@ export default function Home () {
         await audio.play() 
     }
 
-
+    const _gamepadButton = (gp_num: number, btn_num: number, val: number) =>{
+        if (btn_num == 6 || btn_num == 7){
+            const toks = "js|b|" + gp_num + "|" + btn_num + "|" + val*255
+            console.log(toks);
+            
+            // dc.send(toks)
+          }else{
+            const toks = "js|b|" + gp_num + "|" + btn_num + "|" + val
+            // if(btn_num===3 && val===1) RequestKeyFrame();
+            // if(btn_num===15 && val===1) RestartVideo();
+            console.log(toks);
+            // dc.send(toks)
+          }
+    
+    }
+    const _gamepadAxis = (gp_num: number, axis_num: number, val: number) =>{
+        
+    }
+/**
+ * Sends command to WebRTC app to connect virtual joystick and initializes the local GamepadManager.
+ * @param {GamepadEvent} event
+ */
+const _gamepadConnected = function (event: GamepadEvent): void {
+    let gamepadManager = new GamepadManager(
+      event.gamepad,
+      _gamepadButton,
+      _gamepadAxis
+    );
+  }
+  
+    
+    //window.addEventListener("gamepadconnected", _gamepadConnected);
     return (
         <Body>
             <RemoteVideo
