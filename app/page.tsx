@@ -179,7 +179,7 @@ export default function Home () {
         //     ConnectionEvent.ApplicationStarted,
         //     `Hi ${username || first_name}, game is ready to start!`
         // )
-        const SignalingConfig: SignalingConfig = {audioURL:"ws://192.168.1.162:8000/client",dataURL:"",videoURL:"ws://192.168.1.162:8000/client"};
+        const SignalingConfig: SignalingConfig = {audioURL: config.signalling_url ,dataURL:"",videoURL: config.signalling_url};
         const WebRTCConfig: RTCConfiguration = {iceServers:[]};
         client = new RemoteDesktopClient(
             SignalingConfig,
