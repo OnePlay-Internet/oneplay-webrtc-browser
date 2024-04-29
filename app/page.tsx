@@ -98,7 +98,7 @@ export default function Home() {
             audio,
             Platform,
             false,
-            no_mic
+            true
         );
 
         client.ChangeBitrate(bitrate);
