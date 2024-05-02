@@ -32,6 +32,7 @@ body {
     font-size: 10px;
     font-family: Poppins,sans-serif;
     background: black;
+    overflow: hidden;
 }
 body > button {
     color: #c3b5b5;
@@ -108,4 +109,18 @@ a {
     .swal2-styled.swal2-confirm {
         border-radius: 60px !important;
     }
+}
+
+@media only screen and (orientation:landscape){
+    #warning-message { display:none; overflow: hidden;}
+}
+
+@media screen and (orientation:portrait) {
+	body {
+		-webkit-transform: rotate(90deg);
+		-webkit-transform-origin: 50% 50%;
+		transform: rotate(90deg);
+		transform-origin: 50% 50%;
+        overflow: hidden;
+	}
 }

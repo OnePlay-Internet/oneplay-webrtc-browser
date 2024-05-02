@@ -344,6 +344,7 @@ const RemoteVideo = styled.video`
     max-height: 100%;
     max-width: 100%;
     opacity: 1;
+    overflow: hidden;
 `;
 const Body = styled.div`
     width: 100vw;
@@ -351,7 +352,6 @@ const Body = styled.div`
     padding: 0;
     margin: 0;
     border: 0;
-    overflow: hidden;
     background-color: black;
 `;
 const App = styled.div`

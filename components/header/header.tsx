@@ -19,7 +19,7 @@ export const Header = () => {
             <meta name="apple-mobile-web-app-title" content="OnePlay" />
             <meta
                 name="viewport"
-                content="width=device-width, height=device-height,  initial-scale=1.0, user-scalable=no;user-scalable=0;"
+                content= "user-scalable=no"
             />
             <meta httpEquiv="Cache-control" content="no-cache"></meta>
             <link rel="icon" href="/webplay/favicon.ico" />
