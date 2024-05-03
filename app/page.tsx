@@ -63,12 +63,10 @@ export default function Home() {
     }
 
     const searchParams = useSearchParams();
-    const user_ref = searchParams.get("uref") ?? undefined;
-    const ref = searchParams.get("ref") ?? ref_local;
     const platform = searchParams.get("platform");
     const brString = searchParams.get("bitrate");
     const turn = searchParams.get("turn") == "true";
-    const no_video = searchParams.get("phonepad") == "true";
+    const session_id = searchParams.get("session_id")
 
     const [bitrate, setBitrate] = useState(
         (Number(brString) || 10000) > 10000 ? 10000 : Number(brString)
@@ -98,7 +96,8 @@ export default function Home() {
             audio,
             Platform,
             false,
-            true
+            true,
+            session_id
         );
 
         client.ChangeBitrate(bitrate);
