@@ -150,8 +150,10 @@ GamepadACallback: (x: number, y: number, type: 'left' | 'right') => Promise<void
 				icon: <KeyboardIcon />,
 				name: "Write to clipboard",
 				action: async () => {
+					input.toggle_mouse_touch_callback(false);
 					const text = await TurnOnClipboard()
 					await input.clipboardSetCallback(text)
+					input.toggle_mouse_touch_callback(true);
 				},
 			}, {
 				icon: <SettingsIcon />,
