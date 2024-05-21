@@ -123,18 +123,7 @@ GamepadACallback: (x: number, y: number, type: 'left' | 'right') => Promise<void
 	useEffect(() => {
 		console.log(`configuring menu on ${input.platform}`)
 		if (input.platform == 'mobile') {
-			setactions([{
-				icon: <VideoSettingsOutlinedIcon />,
-				name: "Bitrate",
-				action: async () => {
-					let bitrate = await AskSelectBitrate();
-					if (!bitrate || bitrate < 500) {
-						return;
-					}
-					console.log(`bitrate is change to ${bitrate}`);
-					await input.bitrate_callback(bitrate); // don't touch async await here, you'll regret that
-				},
-			},
+			setactions([
 			{
 				icon: <SportsEsportsOutlinedIcon />,
 				name: "Edit VGamepad",
@@ -157,10 +146,6 @@ GamepadACallback: (x: number, y: number, type: 'left' | 'right') => Promise<void
 			// 	},
 			// },
 			{
-				icon: <VolumeUp />,
-				name: "If your audio is muted",
-				action: () => { input.audioCallback() },
-			}, {
 				icon: <KeyboardIcon />,
 				name: "Write to clipboard",
 				action: async () => {
