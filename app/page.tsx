@@ -88,14 +88,8 @@ export default function Home() {
     };
 
     const SetupConnection = async () => {
-        const SignalingConfig: SignalingConfig = {
-            audioURL: config.signalling_url,
-            dataURL: "",
-            videoURL: config.signalling_url,
-        };
         const WebRTCConfig: RTCConfiguration = { iceServers: [] };
         client = new RemoteDesktopClient(
-            SignalingConfig,
             { ...WebRTCConfig, iceTransportPolicy: turn ? "relay" : "all" },
             video,
             audio,
@@ -257,7 +251,7 @@ export default function Home() {
 
     //window.addEventListener("gamepadconnected", _gamepadConnected);
     return (
-        <div>
+        <Body>
         <RemoteVideo
             ref={remoteVideo}
                 src={platform == "desktop" ? video_desktop : video_desktop}
@@ -276,7 +270,7 @@ export default function Home() {
                 audioCallback={audioCallback}
                 clipboardSetCallback={clipboardSetCallback}
             ></WebRTCControl> 
-        </div>
+        </Body>
     );
 }
 
