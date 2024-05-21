@@ -20,6 +20,8 @@ import { AudioWrapper } from "../core/pipeline/sink/audio/wrapper";
 import { SignalingConfig } from "../core/signaling/config";
 import GamepadManager from "../core/hid/gamepad";
 
+import { FixZoom } from "../components/control/control";
+
 let client: RemoteDesktopClient = null;
 let video: VideoWrapper = null;
 let audio: AudioWrapper = null;
@@ -134,6 +136,8 @@ export default function Home() {
     };
 
     useEffect(() => {
+        FixZoom();
+
         AddNotifier(
             async (
                 message: ConnectionEvent,
@@ -174,24 +178,6 @@ export default function Home() {
             //    TurnOnAlert(error);
         });
     }, []);
-
-    const [isModalOpen, setModalOpen] = useState(false);
-    const checkHorizontal = (width: number, height: number) => {
-        if (Platform == "mobile") setModalOpen(false);
-    };
-
-    useEffect(() => {
-        checkHorizontal(window.innerWidth, window.innerHeight);
-        window.addEventListener("resize", (e: UIEvent) => {
-            checkHorizontal(window.innerWidth, window.innerHeight);
-        });
-
-        return () => {
-            window.removeEventListener("resize", (e: UIEvent) => {
-                checkHorizontal(window.innerWidth, window.innerHeight);
-            });
-        };
-    }, [Platform]);
 
     const toggleMouseTouchCallback = async function (enable: boolean) {
         client?.hid?.DisableTouch(!enable);

@@ -25,7 +25,7 @@ interface IControlContext {
 }
 export const ConTrolContext = createContext<IControlContext | null>(null)
 
-function FixZoom(){
+export function FixZoom(){
 	var existingMetaTag = document.querySelector('meta[name="viewport"]');
 	if (existingMetaTag) {
 		// Remove the existing viewport meta tag
