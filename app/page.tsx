@@ -75,6 +75,9 @@ export default function Home() {
 
     const [Platform, setPlatform] = useState<Platform>(null);
 
+    const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+    const [initialialHeight, setInitialialHeight] = useState(0);
+
     const redirectToLogin = () => {
         location.href =
             config.app_domain +
@@ -287,7 +290,7 @@ export default function Home() {
                 audioCallback={audioCallback}
                 clipboardSetCallback={clipboardSetCallback}
             ></WebRTCControl>
-            <audio
+            {/* <audio
                 ref={remoteAudio}
                 autoPlay={true}
                 playsInline={true}
@@ -295,16 +298,16 @@ export default function Home() {
                 muted={false}
                 loop={true}
                 style={{ zIndex: -5, opacity: 0 }}
-            ></audio>
-            <Modal open={isModalOpen}>
+            ></audio> */}
+            {/* <Modal open={isModalOpen}>
                 <ContentModal>
                     <IconHorizontalPhone />
                     <TextModal>
                         Please rotate the phone horizontally!!
                     </TextModal>
                 </ContentModal>
-            </Modal>
-            <Metric
+            </Modal> */}
+            {/* <Metric
                 videoConnect={videoConnectivity}
                 audioConnect={audioConnectivity}
                 decodeFPS={metrics.map((x) => {
@@ -324,7 +327,7 @@ export default function Home() {
                 })}
                 bitrate={bitrate}
                 platform={Platform}
-            />
+            /> */}
         </Body>
     );
 }
