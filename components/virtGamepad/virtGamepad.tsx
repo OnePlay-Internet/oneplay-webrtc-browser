@@ -35,25 +35,34 @@ export const VirtualGamepad = (props: {
         toggle,
     } = props
 
+    const [isZoomed, setIsZoomed] = useState(100);
+    useEffect(function onFirstMount() {
+        const viewportHandler = ()=>{
+            setIsZoomed(Math.round(window.visualViewport.scale*100))
+            console.log("owais: viewportHandler: isZoomed: "+isZoomed);
+        }
+
+        window.visualViewport.addEventListener('resize', viewportHandler);
+      }, []); // empty dependencies array means "run this once on first mount"    
 
     return (
         <>
             {draggable == "static" || draggable == "draggable" ? (
                 <ContainerVirGamepad style={{ zIndex: 2 }}>
-                    <ButtonGroupLeft
-                        AxisCallback={AxisCallback}
-                        ButtonCallback={ButtonCallback}
-                        draggable={draggable}
-                    />
+                <ButtonGroupLeft
+                    AxisCallback={AxisCallback}
+                    ButtonCallback={ButtonCallback}
+                    draggable={draggable}
+                />          
 
-                    <ButtonGroupRight
-                        toggle={toggle}
-                        AxisCallback={AxisCallback}
-                        ButtonCallback={ButtonCallback}
-                        draggable={draggable}
-                    />
+                <ButtonGroupRight
+                    toggle={toggle}
+                    AxisCallback={AxisCallback}
+                    ButtonCallback={ButtonCallback}
+                    draggable={draggable}
+                />
                 </ContainerVirGamepad>
-            ) : null}
+            ) : isZoomed == 100 ? <ContainerVirGamepad style={{ zIndex: 2, opacity: 0.001}}> </ContainerVirGamepad> : null}
         </>
     );
 };

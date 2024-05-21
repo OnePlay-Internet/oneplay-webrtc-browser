@@ -81,7 +81,7 @@ export async function TurnOnClipboard(): Promise<string | null> {
         showCancelButton: false
     })
     Swal.close();
-
+    
     if (text) {
         return text
     } else {

@@ -271,14 +271,14 @@ export default function Home() {
 
     //window.addEventListener("gamepadconnected", _gamepadConnected);
     return (
-        <Body>
-            <RemoteVideo
-                ref={remoteVideo}
+        <div>
+        <RemoteVideo
+            ref={remoteVideo}
                 src={platform == "desktop" ? video_desktop : video_desktop}
-                autoPlay
-                playsInline
-            ></RemoteVideo>
-            <WebRTCControl
+            autoPlay
+            playsInline
+        ></RemoteVideo>
+        <WebRTCControl
                 platform={Platform}
                 toggle_mouse_touch_callback={toggleMouseTouchCallback}
                 bitrate_callback={bitrateCallback}
@@ -289,46 +289,8 @@ export default function Home() {
                 keystuckCallback={keystuckCallback}
                 audioCallback={audioCallback}
                 clipboardSetCallback={clipboardSetCallback}
-            ></WebRTCControl>
-            {/* <audio
-                ref={remoteAudio}
-                autoPlay={true}
-                playsInline={true}
-                controls={false}
-                muted={false}
-                loop={true}
-                style={{ zIndex: -5, opacity: 0 }}
-            ></audio> */}
-            {/* <Modal open={isModalOpen}>
-                <ContentModal>
-                    <IconHorizontalPhone />
-                    <TextModal>
-                        Please rotate the phone horizontally!!
-                    </TextModal>
-                </ContentModal>
-            </Modal> */}
-            {/* <Metric
-                videoConnect={videoConnectivity}
-                audioConnect={audioConnectivity}
-                decodeFPS={metrics.map((x) => {
-                    return { key: x.index, value: x.decodefps };
-                })}
-                receiveFPS={metrics.map((x) => {
-                    return { key: x.index, value: x.receivefps };
-                })}
-                packetLoss={metrics.map((x) => {
-                    return { key: x.index, value: x.packetloss };
-                })}
-                bandwidth={metrics.map((x) => {
-                    return { key: x.index, value: x.bandwidth };
-                })}
-                buffer={metrics.map((x) => {
-                    return { key: x.index, value: x.buffer };
-                })}
-                bitrate={bitrate}
-                platform={Platform}
-            /> */}
-        </Body>
+            ></WebRTCControl> 
+        </div>
     );
 }
 

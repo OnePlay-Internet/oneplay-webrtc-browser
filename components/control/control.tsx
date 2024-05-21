@@ -1,6 +1,6 @@
 "use client"
 
-import { Fullscreen, PowerSettingsNewOutlined, VolumeUp } from "@mui/icons-material";
+import { Fullscreen, PowerSettingsNewOutlined, Scale, VolumeUp } from "@mui/icons-material";
 import SportsEsportsOutlinedIcon from '@mui/icons-material/SportsEsportsOutlined';
 import VideoSettingsOutlinedIcon from '@mui/icons-material/VideoSettingsOutlined';
 import KeyboardIcon from '@mui/icons-material/Keyboard';
@@ -25,6 +25,20 @@ interface IControlContext {
 }
 export const ConTrolContext = createContext<IControlContext | null>(null)
 
+function FixZoom(){
+	var existingMetaTag = document.querySelector('meta[name="viewport"]');
+	if (existingMetaTag) {
+		// Remove the existing viewport meta tag
+		document.head.removeChild(existingMetaTag);
+	}
+
+	var viewportMetaTag = document.createElement('meta');
+	viewportMetaTag.name = 'viewport';
+	viewportMetaTag.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
+
+	// Add the meta tag to the document's head
+	document.head.appendChild(viewportMetaTag);		
+}
 
 export const WebRTCControl = (input: {
 GamepadACallback: (x: number, y: number, type: 'left' | 'right') => Promise<void>,
@@ -151,7 +165,8 @@ GamepadACallback: (x: number, y: number, type: 'left' | 'right') => Promise<void
 				name: "Write to clipboard",
 				action: async () => {
 					input.toggle_mouse_touch_callback(false);
-					const text = await TurnOnClipboard()
+					const text = await TurnOnClipboard()	
+					FixZoom();
 					await input.clipboardSetCallback(text)
 					input.toggle_mouse_touch_callback(true);
 				},

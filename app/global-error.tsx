@@ -4,17 +4,10 @@ import { useEffect } from "react"
 import styled from "styled-components";
 
 export default function GlobalError({
-	error,
 	reset,
 }: {
-	error: Error
 	reset: () => void
 }) {
-	useEffect(() => {
-		// Log the error to an error reporting service
-		alert('To run our product seamlessly, please ensure your device is updated to the latest OS (iOS 16/15 or Android 14/13).')
-		console.error(error)
-	}, [error])
 	return (
 		<html>
 			<Body>
