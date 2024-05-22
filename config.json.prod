@@ -1,0 +1,10 @@
+{
+    "render_mix_api": "https://rendermix.oneream.com/v1",
+    "app_domain": "https://oneplay.in/dashboard",
+    "cookie_domain": "oneplay.in",
+    "supabase_url": "https://fkymwagaibfzyfrzcizz.supabase.co",
+    "supabase_anon_key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZreW13YWdhaWJmenlmcnpjaXp6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE2OTA0NDQxMzMsImV4cCI6MjAwNjAyMDEzM30.t4L2y24cn8uNyEsy1C8vG0WVT8P7yxqXwkdTRRKiHoo",
+    "webrtc_service_host" : "https://client-apis.oneplay.in",
+    "webrtc_service_prefix": "/services/v2",
+    "IsDev": false
+}
