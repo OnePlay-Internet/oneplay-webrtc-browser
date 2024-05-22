@@ -87,7 +87,7 @@ export default function Home() {
             encodeURIComponent(location.href);
     };
 
-    const SetupConnection = async () => {
+    const SetupConnection = async (StartVideoAudioCB: Function) => {
         const WebRTCConfig: RTCConfiguration = { iceServers: [] };
         client = new RemoteDesktopClient(
             { ...WebRTCConfig, iceTransportPolicy: turn ? "relay" : "all" },
@@ -96,7 +96,8 @@ export default function Home() {
             Platform,
             false,
             true,
-            session_id
+            session_id,
+            StartVideoAudioCB
         );
 
         client.ChangeBitrate(bitrate);
@@ -168,7 +169,12 @@ export default function Home() {
 
         video = new VideoWrapper(remoteVideo.current);
         audio = new AudioWrapper(remoteAudio.current);
-        SetupConnection().catch((error) => {
+        SetupConnection(()=>{
+            TurnOnConfirm("READY!", "CLICK START TO PLAY").then(()=>{
+                video.play();
+                audio.play();
+            })
+        }).catch((error) => {
             //    TurnOnAlert(error);
         });
     }, []);
@@ -258,6 +264,11 @@ export default function Home() {
             autoPlay
             playsInline
         ></RemoteVideo>
+        <RemoteAudio 
+            ref={remoteAudio}
+            autoPlay
+            playsInline
+        ></RemoteAudio>
         <WebRTCControl
                 platform={Platform}
                 toggle_mouse_touch_callback={toggleMouseTouchCallback}
@@ -290,6 +301,13 @@ const RemoteVideo = styled.video`
     opacity: 1;
     overflow: hidden;
 `;
+
+const RemoteAudio = styled.audio`
+position: absolute;
+    z-index: 0;
+    right: 0px;
+`
+
 const Body = styled.div`
     width: 100vw;
     height: 100vh;
