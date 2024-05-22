@@ -58,7 +58,7 @@ GamepadACallback: (x: number, y: number, type: 'left' | 'right') => Promise<void
 	const [isModalSettingOpen, setModalSettingOpen] = useState(false)
 
 	useEffect(() => {
-		let enable = (enableVGamepad == 'disable') && (enableVMouse   == 'disable')
+		let enable = (enableVGamepad == 'disable')
 		if( enableVGamepad == 'draggable' || enableVMouse =='draggable'){
 			enable = false
 		}
