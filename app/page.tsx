@@ -223,9 +223,7 @@ export default function Home() {
         client?.hid?.PasteClipboard();
     };
     const audioCallback = async () => {
-        client?.ResetAudio();
-        await video.play();
-        await audio.play();
+        await audio.Toggle();
     };
 
     const _gamepadButton = (gp_num: number, btn_num: number, val: number) => {

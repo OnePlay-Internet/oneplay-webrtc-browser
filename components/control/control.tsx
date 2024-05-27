@@ -1,6 +1,6 @@
 "use client"
 
-import { Fullscreen, PowerSettingsNewOutlined, Scale, VolumeUp } from "@mui/icons-material";
+import { Fullscreen, PowerSettingsNewOutlined, Scale, VolumeDown, VolumeMute, VolumeUp } from "@mui/icons-material";
 import SportsEsportsOutlinedIcon from '@mui/icons-material/SportsEsportsOutlined';
 import VideoSettingsOutlinedIcon from '@mui/icons-material/VideoSettingsOutlined';
 import KeyboardIcon from '@mui/icons-material/Keyboard';
@@ -129,22 +129,11 @@ GamepadACallback: (x: number, y: number, type: 'left' | 'right') => Promise<void
 				name: "Edit VGamepad",
 				action: () => toggleGamepad(),
 			},
-			// {
-			// 	icon: <MouseOutlinedIcon />,
-			// 	name: "Enable VMouse",
-			// 	action: () => {
-			// 		setenableVGamepad('disable')
-			// 		setenableVMouse((prev) => {
-			// 			switch (prev) {
-			// 				case "disable":
-			// 					return "static";
-			// 				case "static":
-			// 					return "disable";
-			// 			}
-			// 		});
-
-			// 	},
-			// },
+			{
+				icon: <VolumeUp />,
+				name: "If your audio is muted",
+				action: () => { input.audioCallback() },
+			},
 			{
 				icon: <KeyboardIcon />,
 				name: "Write to clipboard",
